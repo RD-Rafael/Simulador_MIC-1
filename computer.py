@@ -74,6 +74,7 @@ class ALU:
             self.output = aluOutput
         else:
             raise Exception("ALU init used wrong variable types")
+
     def Update(self):
         F0 = self.controlLines.bits[0]
         F1 = self.controlLines.bits[1]
@@ -95,6 +96,16 @@ class ALU:
             if(INC == 1):
                 ans += 1
             self.output.setBitsInt(ans)
+        if(F0 == 0 and F1 == 0): #AND
+            newOutput = BitData(A.getLength())
+            for i in range(A.getLength()):
+                newOutput.setBit(i, 1 if (A.bits[i] == B.bits[i] and A.bits[i] == 1) else 0)
+            self.output.setBits(newOutput)
+        if(F0 == 0 and F1 == 0): #OR
+            newOutput = BitData(A.getLength())
+            for i in range(A.getLength()):
+                newOutput.setBit(i, 1 if (A.bits[i] == 1 or B.bits[i] == 1) else 0)
+            self.output.setBits(newOutput)
         
         
         
@@ -112,17 +123,26 @@ print(aluOutput.bits)
 ALUControlLines.setBit(0, 1)
 ALUControlLines.setBit(1, 1)
 
+#F0 == F1 == 0 => and
+ALUControlLines.setBit(0, 1)
+ALUControlLines.setBit(1, 1)
+
+busB.setBitsInt(10)
+
+busA.setBitsInt(5)
 
 #enable A
-ALUControlLines.setBit(2, 1)
+ALUControlLines.setBit(2, 0)
+
+#enable B
+ALUControlLines.setBit(3, 1)
+
+#inv A
+ALUControlLines.setBit(4, 0)
 
 #INC
 ALUControlLines.setBit(5, 1)
 
-#inv A
-ALUControlLines.setBit(4, 1)
-
-busA.setBitsInt(77)
 alu.Update()
 print(aluOutput.bits)
 print(aluOutput.getIntSigned())
