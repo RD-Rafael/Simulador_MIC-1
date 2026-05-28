@@ -97,13 +97,15 @@ class Bus(BitData):
     def __init__(self, numBits):
         super().__init__(numBits)
         self.inputSources = []
-    def addInput(self, bitData):
+    def addInput(self, bitData, start):
         #assumindo que bitData tem mesmo tamanho que o bus
-        self.inputSources.append(bitData)
+        self.inputSources.append([bitData, start])
     def Update(self):
         self.bits = self.numBits*[0]
-        for bitData in self.inputSources:
-            for i in range(self.numBits):
+        for entry in self.inputSources:
+            bitData = entry[0]
+            start = entry[1]
+            for i in range(start, start + self.numBits):
                 self.bits[i] = 1 if bitData.getBit(i) == 1 else self.bits[i]
         
 
@@ -181,30 +183,58 @@ class ALU:
                 newOutput.setBit(i, 1 if (A.getBit(i) == B.getBit(i) and A.getBit(i) == 0) else 0)
             self.output.setBits(newOutput)
         
+class Shifter(BitData):
+    def __init__(self, numBits, controlLines, aluBus):
+        super.__init__(numBits)
+        self.controlLines = controlLines
+        self.ALUbus = aluBus
+    
+    def Update(self):
+        SLL8 = self.controlLines.getBit(0)
+        SRA1 = self.controlLines.getBit(1)
+        #descobrir oq tem q fazer
+        self.setBits(self.ALUbus)
         
         
 class Computer:
-    def __init__(self):
-        self.aluOutput = Bus(32)
-        self.ALUControlLines = Bus(6)
+    def __init__(s):
 
-        self.busA = Bus(32)
-        self.busB = Bus(32)
-        self.busC = Bus(32)
+        s.busA = Bus(32)
+        s.busB = Bus(32)
+        s.busC = Bus(32)
 
-        self.MAR = Register(32)
-        self.MDR = Register(32)
-        self.PC = Register(32)
-        self.MBR = Register(8)
-        self.SP = Register(32)
-        self.LV = Register(32)
-        self.CPP = Register(32)
-        self.TOS = Register(32)
-        self.OPC = Register(32)
-        self.H = Register(32)
+        s.MAR = Register(32)
+        s.MDR = Register(32)
+        s.PC = Register(32)
+        s.MBR = Register(8)
+        s.SP = Register(32)
+        s.LV = Register(32)
+        s.CPP = Register(32)
+        s.TOS = Register(32)
+        s.OPC = Register(32)
+        s.H = Register(32)
 
-        self.MIR = Register(36)
-        self.MPC = Register(9)
+        s.MIR = Register(36)
+        s.MPC = Register(9)
+
+        s.aluOutput = Bus(32)
+        s.ALUControlLines = Bus(6)
+        s.ALUControlLines.addInput(s.MIR, 5)
+        s.alu = ALU(s.busA, s.busB, s.ALUControlLines, s.aluOuput)
+
+        s.shifterControlLines = Bus(2)
+        s.shifterControlLines.addInput(s.MIR, 3)
+        s.shifter = Shifter(32, s.shifterControlLines, s.aluOutput)
+
+        s.busB.addInput(s.MDR, 0)
+        s.busB.addInput(s.PC, 0)
+        s.busB.addInput(s.MBR, 0)
+        s.busB.addInput(s.SP, 0)
+        s.busB.addInput(s.LV, 0)
+        s.busB.addInput(s.CPP, 0)
+        s.busB.addInput(s.TOS, 0)
+        s.busB.addInput(s.OPC, 0)
+
 
 
 
