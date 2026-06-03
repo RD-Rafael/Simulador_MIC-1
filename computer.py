@@ -29,13 +29,15 @@ class UpdateSequencer:
             for register in s.registers:
                 s.pendingUpdates[currTime].append(UpdateEntry(register, s.clockComponent, currTime))
 
+        if(s.pendingUpdates.get(currTime) == None):
+            s.pendingUpdates[currTime] = []
         updatesForNow = s.pendingUpdates[currTime]
         res =[]
         for update in updatesForNow:
             res.append(update.component.label)
-        print(res)
+        #print(res)
         for entry in updatesForNow:
-            #print("updating " + entry.component.label + "...")
+            print("updating " + entry.component.label + "...")
             newUpdates : list[UpdateEntry] = entry.component.update(currTime, entry.caller)
             if newUpdates == None:
                 continue
@@ -43,7 +45,12 @@ class UpdateSequencer:
                 updateTime : int = (currTime + newEntry.component.updateDelay)%(s.clock.clockInterval + s.clock.pulseWidth)
                 if s.pendingUpdates.get(updateTime) == None:
                     s.pendingUpdates[updateTime] = []
-                s.pendingUpdates[updateTime].append(newEntry)
+                foundDuplicate = False
+                for pendingUpdate in s.pendingUpdates[updateTime]:
+                    if(pendingUpdate.caller == newEntry.caller and pendingUpdate.component == newEntry.component):
+                        foundDuplicate = True
+                if(not foundDuplicate):
+                    s.pendingUpdates[updateTime].append(newEntry)
 
         s.pendingUpdates[currTime].clear()
         s.clock.timeStep()
@@ -62,9 +69,12 @@ class Computer:
         s.ZFF = FlipFlop(1, "ZFF")
         s.HighBit = HighBit(1)
         
+        s.MAR = MAR(1, s.Memory)
         s.MBR = MBR(1)
         s.MPC = MPC(1)
         s.MIR = MIR(1)
+        s.MDR = MDR(1, s.Memory)
+        s.PC = PC(1, s.Memory)
         #MIR lines
         s.AddrLine = Line(1, "Addr line", 9, 0)
         s.JMPCLine = Line(1, "JMPC line", 1, 9)
@@ -154,10 +164,10 @@ class Computer:
         s.CPPEnableInput.addDependent(s.CPP)
         s.LVEnableInput.addDependent(s.LV)
         s.SPEnableInput.addDependent(s.SP)
-        #s.PCEnableInput.addDependent(s.PC)
-        #s.MDREnableInput.addDependent(s.MDR)
-        #s.MAREnableInput.addDependent(s.MAR)
-        #s.MemoryControlLine.addDependent(s.Memory) ???
+        s.PCEnableInput.addDependent(s.PC)
+        s.MDREnableInput.addDependent(s.MDR)
+        s.MAREnableInput.addDependent(s.MAR)
+        s.MemoryControlLine.addDependent(s.Memory)
         s.BDecoderLine.addDependent(s.Decoder)
 
         s.ORUnit.addDependent(s.MPC)
@@ -170,8 +180,8 @@ class Computer:
         s.Decoder.addDependent(s.CPPEnableOutput)
         s.Decoder.addDependent(s.TOSEnableOutput)
         s.Decoder.addDependent(s.OPCEnableOutput)
-        #s.MDREnableOutput.addDependent(s.MDR)
-        #s.PCEnableOutput.addDependent(s.PC)
+        s.MDREnableOutput.addDependent(s.MDR)
+        s.PCEnableOutput.addDependent(s.PC)
         s.MBREnableOutput1.addDependent(s.MBR)
         s.MBREnableOutput2.addDependent(s.MBR)
         s.SPEnableOutput.addDependent(s.SP)
@@ -182,9 +192,9 @@ class Computer:
 
         s.Abus.addDependent(s.ALU)
         s.Bbus.addDependent(s.ALU)
-        #s.Cbus.addDependent(s.MAR)
-        #s.Cbus.addDependent(s.MDR)
-        #s.Cbus.addDependent(s.PC)
+        s.Cbus.addDependent(s.MAR)
+        s.Cbus.addDependent(s.MDR)
+        s.Cbus.addDependent(s.PC)
         s.Cbus.addDependent(s.MBR)
         s.Cbus.addDependent(s.SP)
         s.Cbus.addDependent(s.LV)
@@ -193,8 +203,8 @@ class Computer:
         s.Cbus.addDependent(s.OPC)
         s.Cbus.addDependent(s.H)
 
-        #s.MDR.addDependent(s.Bbus)
-        #s.PC.addDependent(s.Bbus)
+        s.MDR.addDependent(s.Bbus)
+        s.PC.addDependent(s.Bbus)
         s.SP.addDependent(s.Bbus)
         s.LV.addDependent(s.Bbus)
         s.CPP.addDependent(s.Bbus)
@@ -202,15 +212,15 @@ class Computer:
         s.OPC.addDependent(s.Bbus)
         s.H.addDependent(s.Abus)
 
-        #s.MAR.addDependent(s.Memory)
-        #s.MDR.addDependent(s.Memory)
-        #s.PC.addDependent(s.Memory)
-        #s.Memory.addDependent(s.MDR)
-        #s.Memory.addDependent(s.MBR)
+        s.MAR.addDependent(s.Memory)
+        s.MDR.addDependent(s.Memory)
+        s.PC.addDependent(s.Memory)
+        s.Memory.addDependent(s.MDR)
+        s.Memory.addDependent(s.MBR)
 
-#       s.updateSequencer.addRegister(s.MAR)
-#       s.updateSequencer.addRegister(s.MDR)
-#       s.updateSequencer.addRegister(s.PC)
+        s.updateSequencer.addRegister(s.MAR)
+#       .updateSequencer.addRegister(s.MDR)
+#       .updateSequencer.addRegister(s.PC)
         s.updateSequencer.addRegister(s.MBR)
         s.updateSequencer.addRegister(s.SP)
         s.updateSequencer.addRegister(s.LV)
@@ -234,8 +244,5 @@ class Computer:
         """
 
 
-computer : Computer = Computer()
-for i in range(computer.updateSequencer.clock.clockInterval + computer.updateSequencer.clock.pulseWidth+3):
-    computer.update()
 
     

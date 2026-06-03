@@ -119,6 +119,9 @@ class RWRegister(Component): #Read & write register
                         return []
                 else:
                     return []
+                
+        if(not s.enableOutput):
+            return []
 
         #enqueue updates for dependents
         updateList : list[UpdateEntry] = []
@@ -357,11 +360,31 @@ class MBR(Component):
         super().__init__(updateDelay, "MBR")
         s.inBits = BitData(8) 
         s.outBits = BitData(32) 
+        s.output1 = False
+        s.output2 = False
 
     def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
         #update stats
-        #dependendo do enable output o outBits muda
-        #enqueue updates for dependents
+        match caller.label:
+            case "enable output1":
+                if(caller.outBits.bits[0] == 0):
+                    s.output1 = False
+                else:
+                    s.output1 = True
+            case "enable output2":
+                if(caller.outBits.bits[0] == 0):
+                    s.output2 = False
+                else:
+                    s.output2 = True
+            case "Memory":
+                s.inBits.copyBits(caller.MBROutBits)
+        
+        if(not (s.output1 or s.output2)):
+            return []
+        else:
+            #atualizar outBits
+            pass
+
         updateList : list[UpdateEntry] = []
         for dependent in s.dependents:
             updateList.append(UpdateEntry(dependent, s, currentTime))
@@ -409,9 +432,12 @@ class Memory(Component):
         super().__init__(updateDelay, "Memory")
         s.memoryBits = BitData(2048*32)
         #tamanhos provisórios
-        s.MARBits = BitData(10)
+        s.MARBits = BitData(32)
+        s.Address = 0
         s.MDRBits = BitData(32)
         s.PCBits = BitData(32)
+        s.outBits = BitData(32)
+        s.MBROutBits = BitData(8)
 
     def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
         #update stats
@@ -419,6 +445,10 @@ class Memory(Component):
             case "Clock":
                 pass
             case "MAR":
+                #s.MARBits.copyBits(caller.outBits)
+                s.MARBits.bits[0] = 0
+                s.MARBits.bits[1] = 0
+                s.Address = s.MARBits.toInteger()*4
                 pass
             case "MBR":
                 pass
@@ -430,4 +460,140 @@ class Memory(Component):
         for dependent in s.dependents:
             updateList.append(UpdateEntry(dependent, s, currentTime))
         return updateList
+    
+class MAR(Component):
+    def __init__(s, updateDelay: int, memory :Memory):
+        super().__init__(updateDelay, "MAR")
+        s.comingBits = BitData(32) 
+        s.inBits = BitData(32) 
+        s.outBits = BitData(32) 
+        s.enableOutput : bool = False 
+        s.enableInput : bool = True
+        s.memory = memory
 
+    def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
+        match caller.label:
+            case "enable output":
+                if caller.outBits.bits[0] == 0:
+                    s.enableOutput = False
+                    s.outBits.clear()
+                else:
+                    s.enableOutput = True
+                    s.outBits.copyBits(s.inBits)
+            case "C bus":
+                s.comingBits.copyBits(caller.outBits)
+            case "Clock":
+                if (s.enableInput):
+                    s.inBits.copyBits(s.comingBits)
+                    if (s.enableOutput):
+                        s.outBits.copyBits(s.inBits)
+                    else:
+                        return []
+                else:
+                    return []
+
+        #enqueue updates for dependents
+        updateList : list[UpdateEntry] = []
+        for dependent in s.dependents:
+            updateList.append(UpdateEntry(dependent, s, currentTime))
+        return updateList
+
+
+class MDR(Component):
+    def __init__(s, updateDelay: int, memory : Memory):
+        super().__init__(updateDelay, "MDR")
+        s.comingBits = BitData(32) 
+        s.inBits = BitData(32) 
+        s.outBits = BitData(32) 
+        s.enableOutput : bool = False 
+        s.enableInput : bool = False
+        s.memory = memory
+
+    def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
+        match caller.label:
+            case "enable input":
+                if caller.outBits.bits[0] == 0:
+                    s.enableInput = False
+                else:
+                    s.enableInput = True
+            case "enable output":
+                if caller.outBits.bits[0] == 0:
+                    s.enableOutput = False
+                    s.outBits.clear()
+                else:
+                    s.enableOutput = True
+                    s.outBits.copyBits(s.inBits)
+            case "C bus":
+                s.comingBits.copyBits(caller.outBits)
+            case "Clock":
+                if (s.enableInput):
+                    s.inBits.copyBits(s.comingBits)
+                    if (s.enableOutput):
+                        s.outBits.copyBits(s.inBits)
+                    else:
+                        return []
+                else:
+                    return []
+            case "Memory":
+                #do something
+                #update memory
+                pass
+
+        #if here only update B bus if output is enabled
+        if (not s.enableOutput):
+            return []
+
+        updateList : list[UpdateEntry] = []
+        for dependent in s.dependents:
+            updateList.append(UpdateEntry(dependent, s, currentTime))
+        return updateList
+
+class PC(Component):
+    def __init__(s, updateDelay: int, memory : Memory):
+        super().__init__(updateDelay, "PC")
+        s.comingBits = BitData(32) 
+        s.inBits = BitData(32) 
+        s.outBits = BitData(32) 
+        s.enableOutput : bool = False 
+        s.enableInput : bool = False
+        s.memory = memory
+
+    def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
+        match caller.label:
+            case "enable input":
+                if caller.outBits.bits[0] == 0:
+                    s.enableInput = False
+                else:
+                    s.enableInput = True
+            case "enable output":
+                if caller.outBits.bits[0] == 0:
+                    s.enableOutput = False
+                    s.outBits.clear()
+                else:
+                    s.enableOutput = True
+                    s.outBits.copyBits(s.inBits)
+            case "C bus":
+                s.comingBits.copyBits(caller.outBits)
+            case "Clock":
+                if (s.enableInput):
+                    s.inBits.copyBits(s.comingBits)
+                    if (s.enableOutput):
+                        s.outBits.copyBits(s.inBits)
+                    else:
+                        return []
+                else:
+                    return []
+            case "Memory":
+                #do something
+                #update memory
+                pass
+
+        #if here only update B bus if output is enabled
+        if (not s.enableOutput):
+            return []
+
+        #enqueue updates for dependents
+        updateList : list[UpdateEntry] = []
+        for dependent in s.dependents:
+            updateList.append(UpdateEntry(dependent, s, currentTime))
+        return updateList

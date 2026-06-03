@@ -8,6 +8,14 @@ class Clock:
         pass
 
     def getTime(s) -> int:
+        if(s.currentTime == 0):
+            print("=======!!")
+            print("descendingPulse")
+            print("=======!!")
+        elif(s.currentTime == s.clockInterval):
+            print("=======!!")
+            print("ascendingPulse")
+            print("=======!!")
         return s.currentTime
     
     def timeStep(s):
