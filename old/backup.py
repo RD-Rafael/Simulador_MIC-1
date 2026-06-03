@@ -1,11 +1,11 @@
 #ALL CLASSES HAVE TO IMPLEMENT UPDATE METHOD
 #UPDATE METHOD UPDATES OBJECT STATE GIVEN INPUTS
 #IF OBJECT A STATE CHANGES, OBJECT A HAS TO PROPAGATE UPDATE CALLS TO OBJECTS WHICH INPUT IS DEPENDENT ON OBJECT A STATE
-import BitData
+import old.BitData as BitData
 
 class Bus(BitData):
     def __init__(self, numBits):
-        super().__init__(numBits)
+        super()().__init__(numBits)
         self.inputSources = []
     def addInput(self, bitData, start):
         #assumindo que bitData tem mesmo tamanho que o bus
@@ -21,7 +21,7 @@ class Bus(BitData):
 
 class Register(BitData):
     def __init__(self, numBits):
-        super().__init__(numBits)
+        super()().__init__(numBits)
         self.inputControlLine = None
         self.outputControlLine = None
     def setInputBus(self, bus):
@@ -39,7 +39,7 @@ class Register(BitData):
         if(self.inputControlLine):
             self.enableInput = True if self.inputControlLine.getBit(self.inputControlIdx) == 1 else False
         if(self.outputControlLine):
-            self.enableOuput = True if self.ouputControlLine.getBit(self.outputControlIdx) == 1 else False
+            self.enableOutput = True if self.ouputControlLine.getBit(self.outputControlIdx) == 1 else False
         if(self.enableInput):
             self.setBits(self.inputBus.getBits())
     
@@ -95,7 +95,7 @@ class ALU:
         
 class Shifter(BitData):
     def __init__(self, numBits, controlLines, aluBus):
-        super.__init__(numBits)
+        super().__init__(numBits)
         self.controlLines = controlLines
         self.ALUbus = aluBus
     
@@ -133,7 +133,7 @@ class Computer:
         s.aluOutput = Bus(32)
         s.ALUControlLines = Bus(6)
         s.ALUControlLines.addInput(s.MIR, 5)
-        s.alu = ALU(s.busA, s.busB, s.ALUControlLines, s.aluOuput)
+        s.alu = ALU(s.busA, s.busB, s.ALUControlLines, s.aluOutput)
 
         s.shifterControlLines = Bus(2)
         s.shifterControlLines.addInput(s.MIR, 3)

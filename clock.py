@@ -1,7 +1,7 @@
 
 class Clock:
-    pulseWidth : int = 30
-    clockInterval : int = 120 #full Cycle = pulseWidth + clockInterval
+    pulseWidth : int = 10
+    clockInterval : int = 20 #full Cycle = pulseWidth + clockInterval
     currentTime : int = 0 #0: descending Pulse
 
     def __init__(s):

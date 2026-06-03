@@ -15,7 +15,7 @@ class BitData: #registers, outputs, etc
             raise Exception("tried to get bit section out of bounds in BitData")
         if(idxEnd < idxStart):
             raise Exception("invalid indexes for bit section in BitData")
-        if(not self.enableOuput):
+        if(not self.enableOutput):
             return (idxEnd - idxStart)*[0]
         return self.bits[idxStart:idxEnd]
 
