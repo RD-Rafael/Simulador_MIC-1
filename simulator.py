@@ -5,9 +5,30 @@ from tkinter import scrolledtext
 from tkinter import Image
 
 computer : Computer = Computer()
+
+def createRegisterLabel(registersWindow, font, register: Component, bits: BitData, row : int):
+    labelLabel : ttk.Label = ttk.Label(registersWindow, text=register.label, font=font, justify='left', anchor='w')
+    labelLabel.grid(sticky='W', column=1, row=row)
+    bitsLabel : ttk.Label = ttk.Label(registersWindow, text="", font=font, justify='left', anchor='w')
+    bitsLabel.grid(sticky='W', column=2, row=row)
+    ans = [bits, bitsLabel]
+    return ans
+
+def updateRegistersLabels(labels):
+    for label in labels:
+        bits = label[0]
+        bitsLabel = label[1]
+        lstr = ": "
+        for i in range(bits.length):
+            lstr += str(bits.bits[i])
+        bitsLabel.configure(text=lstr)
+
+
+registerLabels = []
+
 def update():
     computer.update()
-    SPlabel.configure(text="SP" + str(computer.SP.outBits.toInteger()))
+    updateRegistersLabels(registerLabels)
 mainWindow = tk.Tk()
 font = ("Times New Roman", 20)
 
@@ -35,12 +56,22 @@ registersWindow = tk.Toplevel( mainWindow )
 registersWindow.transient( mainWindow )
 registersWindow.title( "Registradores" )
 registersWindow.minsize(600, 300)
-registersWindowfrm = ttk.Frame(registersWindow, padding=10)
 ttk.Separator(registersWindow).grid(column=0, row=1)
-SPlabel : ttk.Label = ttk.Label(registersWindow, text="SP", font=font)
-SPlabel.grid(column=1,row=0)
 
-registersWindowfrm.grid()
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.MAR, computer.MAR.outBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.MDR, computer.MDR.outBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.PC, computer.PC.outBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.MBR, computer.MBR.inBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.SP, computer.SP.outBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.LV, computer.LV.outBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.CPP, computer.CPP.outBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.TOS, computer.TOS.outBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.OPC, computer.OPC.outBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.H, computer.H.outBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.MIR, computer.MIR.outBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.MPC, computer.MPC.outBits, len(registerLabels)))
+
+
 
 print(CodeTextInput.configure().keys())
 print(CodeTextInput.configure()["font"])

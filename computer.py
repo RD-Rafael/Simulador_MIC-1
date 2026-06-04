@@ -9,6 +9,7 @@ class UpdateSequencer:
 
     def __init__(s, controlMemory : ControlMemory):
         s.controlMemory = controlMemory
+        s.controlMemory.loadMicrocode("malcodeoutput.txt")
         s.registers = []
         s.clockComponent = Component(1, "Clock")
         pass
@@ -35,9 +36,9 @@ class UpdateSequencer:
         res =[]
         for update in updatesForNow:
             res.append(update.component.label)
-        #print(res)
+        print(res)
         for entry in updatesForNow:
-            print("updating " + entry.component.label + "...")
+            #print("updating " + entry.component.label + "...")
             newUpdates : list[UpdateEntry] = entry.component.update(currTime, entry.caller)
             if newUpdates == None:
                 continue
@@ -98,8 +99,8 @@ class Computer:
         #NAO SEI SE ESTÁ NA ORDEM CERTA
         s.MDREnableOutput = Line(1, "enable output", 1, 0)
         s.PCEnableOutput = Line(1, "enable output", 1, 1)
-        s.MBREnableOutput1 = Line(1, "enable output1", 1, 2)
-        s.MBREnableOutput2 = Line(1, "enable output2", 1, 3)
+        s.MBREnableOutput1 = Line(1, "enable output1", 1, 2) #MBR
+        s.MBREnableOutput2 = Line(1, "enable output2", 1, 3) #MBRU
         s.SPEnableOutput = Line(1, "enable output", 1, 4)
         s.LVEnableOutput = Line(1, "enable output", 1, 5)
         s.CPPEnableOutput = Line(1, "enable output", 1, 6)

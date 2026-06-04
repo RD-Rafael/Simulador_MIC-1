@@ -1,0 +1,113 @@
+Main1: PC = PC + 1;fetch;goto (MBR)
+nop1: goto Main1
+iadd1: MAR = SP = SP - 1;rd
+H = TOS
+MDR = TOS = MDR + H;wr;goto Main1
+isub1: MAR = SP = SP - 1;rd
+H = TOS
+MDR = TOS = MDR - H;wr;goto Main1
+iand1: MAR = SP = SP - 1;rd
+H = TOS
+MDR = TOS = MDR AND H;wr;goto Main1
+ior1: MAR = SP = SP - 1;rd
+H = TOS
+MDR = TOS = MDR OR H;wr;goto Main1
+dup1: MAR = SP = SP - 1;rd
+MDR = TOS;wr;goto Main1
+pop1: MAR = SP = SP - 1;rd
+
+TOS = MDR;goto Main1
+swap1: MAR = SP - 1;rd
+MAR = SP
+H = MDR;wr
+MDR = TOS
+MAR = SP -1;wr
+TOS = H;goto Main1
+bipush1: SP = MAR = SP + 1
+PC = PC + 1;fetch
+MDR = TOS = MBR;wr;goto Main1
+iload1: H = LV
+MAR = MBRU + H;rd
+iload3: MAR = SP = SP + 1
+PC = PC + 1;fetch;wr
+TOS = MDR;goto Main1
+istore1: H = LV
+MAR = MBRU + H
+istore3: MDR = TOS;wr
+SP = MAR = SP - 1;rd
+PC = PC + 1;fetch
+TOS = MDR; goto Main1
+wide1: PC = PC + 1;fetch
+goto (MBR OR 256)
+wide_iload1: PC = PC + 1;fetch
+H = MBRU << 8
+H = MBRU OR H
+MAR = LV + H;rd;goto iload3
+wide_istore1: PC = PC + 1;fetch
+H = MBRU << 8
+H = MBRU OR H
+MAR = LV + H;goto istore3
+idc_w1: PC = PC + 1;fetch
+H = MBRU << 8
+H = MBRU OR H
+MAR = H + CPP;rd;goto iload3
+iinc1: H = LV
+MAR = MBRU + H;rd
+PC = PC + 1;fetch
+H = MDR
+PC = PC + 1;fetch
+MDR = MBR + H;wr;goto Main1
+goto1: OPC = PC - 1
+goto2: PC = PC + 1;fetch
+H = MBR << 8
+H = MBRU OR H
+PC = OPC + H;fetch
+goto Main1
+iflt1: MAR = SP = SP - 1;rd
+OPC = TOS
+TOS = MDR
+test: N = OPC;if (N) goto T;else goto F
+ifeq1: MAR = SP = SP -1;rd
+OPC = TOS
+TOS = MDR
+Z = OPC;if (Z) goto T;else goto F
+if_icmpeq1: MAR = SP = SP - 1;rd
+MAR = SP = SP - 1
+H = MDR;rd
+OPC = TOS
+TOS = MDR
+Z = OPC - H;if (Z) goto T;else goto F
+T: OPC = PC - 1;goto goto2
+F: PC = PC + 1
+PC = PC + 1;fetch
+goto Main1
+invokevirtual1: PC = PC + 1;fetch
+H = MBRU << 8
+H = MBRU OR H
+MAR = CPP + H;rd
+OPC = PC + 1
+PC = MDR;fetch
+PC = PC + 1;fetch
+H = MBRU << 8
+H = MBRU OR H
+PC = PC + 1;fetch
+TOS = SP - H
+TOS = MAR = TOS + 1
+PC = PC + 1;fetch
+H = MBRU << 8
+H = MBRU OR H
+MDR = SP + H + 1;wr
+MAR = SP = MDR
+MDR = OPC;wr
+MAR = SP = SP + 1
+MDR = LV; wr
+PC = PC + 1;fetch
+LV = TOS;goto Main1
+ireturn1: MAR = SP = LV;rd
+
+LV = MAR = MDR;rd
+MAR = LV + 1
+PC = MDR;rd;fetch
+MAR = SP
+LV = MDR
+MDR = TOS;wr;goto Main1

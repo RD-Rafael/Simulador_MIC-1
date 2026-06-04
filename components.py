@@ -52,6 +52,13 @@ class BitData():
                 ans += bit
             bit = bit << 1
         return ans
+    
+    def _setBitsFromInt(s, value : int):
+        for i in range(s.length):
+            s.bits[i] = 1 if bool(value & (1 << (s.length) - i - 1)) else 0
+            
+            
+                
 
 class Bus(Component):
     def __init__(s, updateDelay: int, label: str, length :int):
@@ -254,9 +261,9 @@ class ORUnit(Component):
 
         #CALCULAR OUTBITS NOVAMENTE
         if s.JMPCValue:
-            s.outBits.bits[0] = s.nextAddrBits[0]
+            s.outBits.bits[0] = s.nextAddrBits.bits[0]
             for i in range(8):
-                s.outBits[i+1] = s.MBRBits[i+1] or s.nextAddrBits[i+1]
+                s.outBits.bits[i+1] = s.MBRBits.bits[i] or s.nextAddrBits.bits[i+1]
         else:
             s.outBits.copyBits(s.nextAddrBits)
         #############
@@ -298,14 +305,22 @@ class ControlMemory(Component):
         s.MPCBits = BitData(9)
         s.outBits = BitData(36)
         s.currentAddress = BitData(9)
+    
+    def loadMicrocode(s, codeFileName : str):
+        with open(codeFileName) as f:
+            for i in range(512):
+                line = f.readline()
+                for j in range(36):
+                    s.bits.bits[i*36 + j] = int(line[j])
 
     def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
         #update stats
         match caller.label:
             case "Clock":
                 s.currentAddress.copyBits(s.MPCBits)
-                addressInteger : int = s.currentAddress.toInteger()
+                addressInteger : int = s.currentAddress.toInteger()*36
                 s.outBits.copyBitSection(s.bits, addressInteger)
+                print(s.outBits.bits)
                 pass
             case "MPC bus":
                 s.MPCBits.copyBits(caller.outBits)
