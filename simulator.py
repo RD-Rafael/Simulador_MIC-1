@@ -14,7 +14,7 @@ def createRegisterLabel(registersWindow, font, register: Component, bits: BitDat
     ans = [bits, bitsLabel]
     return ans
 
-def updateRegistersLabels(labels):
+def updateLabelsList(labels):
     for label in labels:
         bits = label[0]
         bitsLabel = label[1]
@@ -23,12 +23,13 @@ def updateRegistersLabels(labels):
             lstr += str(bits.bits[i])
         bitsLabel.configure(text=lstr)
 
-
 registerLabels = []
+debugLabels = []
 
 def update():
     computer.update()
-    updateRegistersLabels(registerLabels)
+    updateLabelsList(registerLabels)
+    updateLabelsList(debugLabels)
 mainWindow = tk.Tk()
 font = ("Times New Roman", 20)
 
@@ -70,6 +71,23 @@ registerLabels.append(createRegisterLabel(registersWindow, font, computer.OPC, c
 registerLabels.append(createRegisterLabel(registersWindow, font, computer.H, computer.H.outBits, len(registerLabels)))
 registerLabels.append(createRegisterLabel(registersWindow, font, computer.MIR, computer.MIR.outBits, len(registerLabels)))
 registerLabels.append(createRegisterLabel(registersWindow, font, computer.MPC, computer.MPC.outBits, len(registerLabels)))
+
+debugWindow = tk.Toplevel( mainWindow )
+debugWindow.transient( mainWindow )
+debugWindow.title( "Registradores" )
+debugWindow.minsize(600, 300)
+ttk.Separator(debugWindow).grid(column=0, row=1)
+
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.Shifter, computer.Shifter.outBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.ALU, computer.ALU.outBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.ALUControlLine, computer.ALUControlLine.outBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.Memory, computer.Memory.PCBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.MemoryControlLine, computer.MemoryControlLine.outBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.Abus, computer.Abus.outBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.Bbus, computer.Bbus.outBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.Decoder, computer.Decoder.outBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.controlMemory, computer.controlMemory.outBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.controlMemory, computer.controlMemory.MPCBits, len(debugLabels)))
 
 
 

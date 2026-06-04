@@ -21,8 +21,8 @@ class UpdateSequencer:
         currTime : int = s.clock.getTime()
         if(currTime == 0): #descending signal
             #update control Memory
-            entry = UpdateEntry(s.controlMemory, s.clockComponent, 0)
-            s.pendingUpdates[0] = [entry]
+            entry = UpdateEntry(s.controlMemory, s.clockComponent, s.controlMemory.updateDelay)
+            s.pendingUpdates[entry.timeIdx] = [entry]
         
         elif(currTime == s.clock.clockInterval): #ascending signal
             #update Registers
@@ -35,7 +35,7 @@ class UpdateSequencer:
         updatesForNow = s.pendingUpdates[currTime]
         res =[]
         for update in updatesForNow:
-            res.append(update.component.label)
+            res.append([update.caller.label, update.component.label])
         print(res)
         for entry in updatesForNow:
             #print("updating " + entry.component.label + "...")
@@ -58,30 +58,32 @@ class UpdateSequencer:
                 
 class Computer:
     def __init__(s):
-        s.controlMemory = ControlMemory(1)
-        s.Memory = Memory(1)
+        s.controlMemory = ControlMemory(6)
         s.updateSequencer = UpdateSequencer(s.controlMemory)
 
-        s.ALU = ALU(1)
-        s.Shifter = Shifter(1)
+        s.ALU = ALU(5)
+        s.Shifter = Shifter(5)
         s.NLine = Line(1, "N line", 1, 0)
         s.ZLine = Line(1, "Z line", 1, 0)
         s.NFF = FlipFlop(1, "NFF")
         s.ZFF = FlipFlop(1, "ZFF")
         s.HighBit = HighBit(1)
         
-        s.MAR = MAR(1, s.Memory)
-        s.MBR = MBR(1)
-        s.MPC = MPC(1)
-        s.MIR = MIR(1)
-        s.MDR = MDR(1, s.Memory)
-        s.PC = PC(1, s.Memory)
+        s.MIR = MIR(2)
+        s.MAR = MAR(5)
+        s.MBR = MBR(5)
+        s.MPC = MPC(5)
+        s.MDR = MDR(5, None)
+        s.PC = PC(5)
+        
+        s.Memory = Memory(1, s.MBR, s.MDR)
+        s.MDR.Memory = s.Memory
         #MIR lines
         s.AddrLine = Line(1, "Addr line", 9, 0)
         s.JMPCLine = Line(1, "JMPC line", 1, 9)
         s.JAMNZLine = Line(1, "JAMNZ line", 2, 10)
         s.ShifterControlLine = Line(2, "Shifter control line", 2, 12)
-        s.ALUControlLine = Line(6, "ALU control line", 6, 14)
+        s.ALUControlLine = Line(1, "ALU control line", 6, 14)
         s.HEnableInput = Line(1, "enable input", 1, 20)
         s.OPCEnableInput = Line(1, "enable input", 1, 21)
         s.TOSEnableInput = Line(1, "enable input", 1, 22)
@@ -95,7 +97,7 @@ class Computer:
         s.BDecoderLine = Line(1, "B decoder line", 4, 32)
 
         s.ORUnit = ORUnit(1)
-        s.Decoder = Decoder(1)
+        s.Decoder = Decoder(2)
         #NAO SEI SE ESTÁ NA ORDEM CERTA
         s.MDREnableOutput = Line(1, "enable output", 1, 0)
         s.PCEnableOutput = Line(1, "enable output", 1, 1)
@@ -107,17 +109,17 @@ class Computer:
         s.TOSEnableOutput = Line(1, "enable output", 1, 7)
         s.OPCEnableOutput = Line(1, "enable output", 1, 8)
 
-        s.Abus = Bus(1, "A bus", 32)
-        s.Bbus = Bus(1, "B bus", 32)
-        s.Cbus = Bus(1, "C bus", 32)
-        s.MPCBus = Bus(1, "MPC bus", 9)
+        s.Abus = Bus(2, "A bus", 32)
+        s.Bbus = Bus(2, "B bus", 32)
+        s.Cbus = Bus(2, "C bus", 32)
+        s.MPCBus = Bus(2, "MPC bus", 9)
 
-        s.SP = RWRegister(1, "SP", 32)
-        s.LV = RWRegister(1, "LV", 32)
-        s.CPP = RWRegister(1, "CPP", 32)
-        s.TOS = RWRegister(1, "TOS", 32)
-        s.OPC = RWRegister(1, "OPC", 32)
-        s.H = H(1)
+        s.SP = RWRegister(5, "SP", 32)
+        s.LV = RWRegister(5, "LV", 32)
+        s.CPP = RWRegister(5, "CPP", 32)
+        s.TOS = RWRegister(5, "TOS", 32)
+        s.OPC = RWRegister(5, "OPC", 32)
+        s.H = H(5)
 
 
         s.controlMemory.addDependent(s.MIR)
@@ -214,7 +216,6 @@ class Computer:
         s.H.addDependent(s.Abus)
 
         s.MAR.addDependent(s.Memory)
-        s.MDR.addDependent(s.Memory)
         s.PC.addDependent(s.Memory)
         s.Memory.addDependent(s.MDR)
         s.Memory.addDependent(s.MBR)

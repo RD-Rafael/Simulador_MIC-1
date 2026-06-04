@@ -205,8 +205,6 @@ with open("malcodeinput.txt") as f:
                 
                 decoderBits = BitData(4)
                 decoderBits._setBitsFromInt(decoderValue)
-                if(instruction == "MDR = TOS;wr"):
-                    print(decoderBits.bits)
                 for i in range(4):
                     instructionObj.adjacentBits.bits[32 + i] = decoderBits.bits[i]
                 
@@ -267,10 +265,6 @@ with open("malcodeinput.txt") as f:
         ins = instructionObjs[i]
         program[instructionIdAddress[i]].copyBits(ins.adjacentBits)
     
-    print(labelInstructionId["test"])
-    print(instructionIdAddress[labelInstructionId["istore3"]])
-
-
 
 with open("malcodeoutput.txt", mode="w") as f:
     for bitData in program:

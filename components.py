@@ -1,10 +1,12 @@
+def xor(A: int, B : int):
+    return not ( (A and B) or (not ((B) or (A))) )
+
 
 class UpdateEntry:
     def __init__(s, component : Component, caller : Component, timeIdx : int):
         s.component = component
         s.caller = caller
         s.timeIdx = timeIdx
-
 
 class Component:
     def __init__(s, updateDelay : int, label :str):
@@ -56,9 +58,6 @@ class BitData():
     def _setBitsFromInt(s, value : int):
         for i in range(s.length):
             s.bits[i] = 1 if bool(value & (1 << (s.length) - i - 1)) else 0
-            
-            
-                
 
 class Bus(Component):
     def __init__(s, updateDelay: int, label: str, length :int):
@@ -136,7 +135,6 @@ class RWRegister(Component): #Read & write register
             updateList.append(UpdateEntry(dependent, s, currentTime))
         return updateList
 
-
 class FlipFlop(Component):
     def __init__(s, updateDelay: int, label: str):
         super().__init__(updateDelay, label)
@@ -175,6 +173,14 @@ class HighBit(Component):
             case "JAMNZ line":
                 s.JAMNZBits.copyBits(caller.outBits)
 
+        N = s.NFFBit.bits[0]
+        Z = s.ZFFBit.bits[0]
+        JAMN = s.JAMNZBits.bits[0]
+        JAMZ = s.JAMNZBits.bits[1]
+
+        F = 1 if (JAMZ and Z) or (JAMN and N) else 0
+        s.outBits.bits[0] = F
+
         #enqueue updates for dependents
         updateList : list[UpdateEntry] = []
         for dependent in s.dependents:
@@ -185,8 +191,16 @@ class ALU(Component):
     def __init__(s, updateDelay: int):
         super().__init__(updateDelay, "ALU")
         s.BitsA = BitData(32) 
-        s.BitsB = BitData(32) 
-        s.outBits = BitData(32) 
+        s.BitsB = BitData(32)
+        s.inA = BitData(32)
+        s.inB = BitData(32)
+        s.outBits = BitData(32)
+        s.F0 = 0
+        s.F1 = 0
+        s.ENA = 0
+        s.ENB = 0
+        s.INVA = 0
+        s.INC = 0
 
     def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
         #update stats
@@ -198,8 +212,61 @@ class ALU(Component):
                 s.BitsB.copyBits(caller.outBits)
                 pass
             case "ALU control line":
-                #changes operation
-                pass
+                s.F0 = caller.outBits.bits[0]
+                s.F1 = caller.outBits.bits[1]
+                s.ENA = caller.outBits.bits[2]
+                s.ENB = caller.outBits.bits[3]
+                s.INVA = caller.outBits.bits[4]
+                s.INC = caller.outBits.bits[5]
+
+        F0 = s.F0
+        F1 = s.F1
+        ENA = s.ENA
+        ENB = s.ENB
+        INVA = s.INVA
+        INC = s.INC
+        if(ENA):
+            s.inA.copyBits(s.BitsA)
+        else:
+            s.inA.clear()
+
+        if(ENB):
+            s.inB.copyBits(s.BitsB)
+        else:
+            s.inB.clear()
+        
+        if(INVA):
+            for i in range(s.inA.length):
+                s.inA.bits[i] = 0 if s.inA.bits[i] else 1
+        
+        if(F0 == 0 and F1 == 0):
+            #soma
+            print(INC)
+            carry = INC
+            for i in range(s.inA.length):
+                idx = s.inA.length - i -1
+                bitA = s.inA.bits[idx]
+                bitB = s.inB.bits[idx]
+                S = 1 if xor(xor(bitA, bitB), carry) else 0
+                carry = 1 if (bitA and bitB) or (xor(bitA, bitB) and (carry)) else 0
+                s.outBits.bits[idx] = S
+        if(F0 == 0 and F1 == 1):
+            #OR
+            for idx in range(s.inA.length):
+                bitA = s.inA.bits[idx]
+                bitB = s.inB.bits[idx]
+                s.outBits.bits[idx] = 1 if bitA or bitB else 0
+        if(F0 == 0 and F1 == 1):
+            #AND
+            for idx in range(s.inA.length):
+                bitA = s.inA.bits[idx]
+                bitB = s.inB.bits[idx]
+                s.outBits.bits[idx] = 1 if bitA and bitB else 0
+
+
+
+
+                
 
         #CALCULAR OUTBITS NOVAMENTE
         #############
@@ -237,7 +304,6 @@ class Shifter(Component):
             updateList.append(UpdateEntry(dependent, s, currentTime))
         return updateList
 
-
 class ORUnit(Component):
     def __init__(s, updateDelay :int):
         super().__init__(updateDelay, "ORUnit")
@@ -274,23 +340,27 @@ class ORUnit(Component):
             updateList.append(UpdateEntry(dependent, s, currentTime))
         return updateList
 
-
 class MPC(Component):
     def __init__(s, updateDelay: int):
         super().__init__(updateDelay, "MPC")
+        s.addrBits = BitData(9)
+        s.HighBit = BitData(1)
         s.outBits = BitData(9) 
 
     def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
         #update stats
         match caller.label:
             case "ORUnit":
-                for i in range(8):
-                    s.outBits.bits[i+1] = caller.outBits.bits[i]
+                for i in range(9):
+                    s.addrBits.bits[i] = caller.outBits.bits[i]
                 pass
             case "HighBit":
-                s.outBits.bits[0] = caller.outBits.bits[0] or s.outBits.bits[0]
-                
+                s.HighBit.bits[0] = caller.outBits.bits[0]
                 pass
+
+        s.outBits.bits[0] = 1 if s.HighBit.bits[0] or s.addrBits.bits[0] else 0
+        for i in range(8):
+            s.outBits.bits[i+1] = s.addrBits.bits[i+1]
 
         #enqueue updates for dependents
         updateList : list[UpdateEntry] = []
@@ -300,7 +370,7 @@ class MPC(Component):
 
 class ControlMemory(Component):
     def __init__(s, updateDelay: int):
-        super().__init__(updateDelay, "MIR")
+        super().__init__(updateDelay, "Control Memory")
         s.bits = BitData(512*36)
         s.MPCBits = BitData(9)
         s.outBits = BitData(36)
@@ -362,13 +432,12 @@ class Decoder(Component):
         s.inBits.copyBits(caller.outBits)
 
         s.outBits.clear()
-        s.outBits.bits[s.inBits.toInteger()] = 1
+        s.outBits.bits[s.outBits.length - s.inBits.toInteger() - 1] = 1
 
         updateList : list[UpdateEntry] = []
         for dependent in s.dependents:
             updateList.append(UpdateEntry(dependent, s, currentTime))
         return updateList
-
 
 class MBR(Component):
     def __init__(s, updateDelay: int):
@@ -393,11 +462,19 @@ class MBR(Component):
                     s.output2 = True
             case "Memory":
                 s.inBits.copyBits(caller.MBROutBits)
-        
+            
         if(not (s.output1 or s.output2)):
+            s.outBits.clear()
             return []
         else:
-            #atualizar outBits
+            if(s.output1):
+                for i in range(24):
+                    s.outBits.bits[i] = s.inBits.bits[0]
+            else:
+                s.outBits.clear()
+
+            for i in range(8):
+                s.outBits.bits[i+24] = s.inBits.bits[i]
             pass
 
         updateList : list[UpdateEntry] = []
@@ -425,6 +502,7 @@ class H(Component): #H register
                     return
             case "C bus":
                 s.comingBits.copyBits(caller.outBits)
+                return
             case "Clock":
                 if (s.enableInput):
                     s.inBits.copyBits(s.comingBits)
@@ -441,50 +519,77 @@ class H(Component): #H register
             updateList.append(UpdateEntry(dependent, s, currentTime))
         return updateList
 
-
 class Memory(Component):
-    def __init__(s, updateDelay: int):
+    def __init__(s, updateDelay: int, mbr : MBR, mdr : MDR):
         super().__init__(updateDelay, "Memory")
-        s.memoryBits = BitData(2048*32)
+        s.MBR = mbr
+        s.MDR = mdr
+
+        s.memoryBits = BitData((2048)*32)
+        for i in range((2048)*32):
+            s.memoryBits.bits[i] = 1
         #tamanhos provisórios
+        s.wordAddress = 0
+        s.byteAddress = 0
+
         s.MARBits = BitData(32)
-        s.Address = 0
         s.MDRBits = BitData(32)
         s.PCBits = BitData(32)
-        s.outBits = BitData(32)
+
         s.MBROutBits = BitData(8)
+        s.MDROutBits = BitData(32)
+
+        s.write = False
+        s.read = False
+        s.fetch = False
+        print(s.memoryBits.bits)
 
     def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
         #update stats
+        updateList : list[UpdateEntry] = []
+
         match caller.label:
-            case "Clock":
+            case "Memory control line":
+                s.write = caller.outBits.bits[0]
+                s.read = caller.outBits.bits[1]
+                s.fetch = caller.outBits.bits[2]
                 pass
             case "MAR":
                 #s.MARBits.copyBits(caller.outBits)
                 s.MARBits.bits[0] = 0
                 s.MARBits.bits[1] = 0
-                s.Address = s.MARBits.toInteger()*4
+                s.wordAddress = s.MARBits.toInteger()*4
                 pass
-            case "MBR":
+            case "MDR":
+                s.MDRBits.copyBits(caller.outBits)
                 pass
             case "PC":
+                s.PCBits.copyBits(caller.outBits)
+                s.byteAddress = s.PCBits.toInteger()
                 pass
-
-        #enqueue updates for dependents
-        updateList : list[UpdateEntry] = []
-        for dependent in s.dependents:
-            updateList.append(UpdateEntry(dependent, s, currentTime))
+        
+        if(s.fetch):
+            s.MBROutBits.copyBitSection(s.memoryBits, s.byteAddress*8)
+            updateList.append(UpdateEntry(s.MBR, s, currentTime))
+        if(s.read):
+            s.MDROutBits.copyBitSection(s.memoryBits, s.wordAddress*8)
+            s.MDRBits.copyBitSection(s.memoryBits, s.wordAddress*8)
+            updateList.append(UpdateEntry(s.MDR, s, currentTime))
+        if(s.write):
+            print("writing!")
+            for i in range(s.MDRBits.length):
+                s.memoryBits.bits[s.wordAddress*8 + i] = s.MDRBits.bits[i]
+            
         return updateList
     
 class MAR(Component):
-    def __init__(s, updateDelay: int, memory :Memory):
+    def __init__(s, updateDelay: int):
         super().__init__(updateDelay, "MAR")
         s.comingBits = BitData(32) 
         s.inBits = BitData(32) 
         s.outBits = BitData(32) 
         s.enableOutput : bool = False 
         s.enableInput : bool = True
-        s.memory = memory
 
     def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
         match caller.label:
@@ -512,7 +617,6 @@ class MAR(Component):
         for dependent in s.dependents:
             updateList.append(UpdateEntry(dependent, s, currentTime))
         return updateList
-
 
 class MDR(Component):
     def __init__(s, updateDelay: int, memory : Memory):
@@ -522,9 +626,10 @@ class MDR(Component):
         s.outBits = BitData(32) 
         s.enableOutput : bool = False 
         s.enableInput : bool = False
-        s.memory = memory
+        s.Memory = memory
 
     def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
+        memoryUpdated = False
         match caller.label:
             case "enable input":
                 if caller.outBits.bits[0] == 0:
@@ -550,28 +655,33 @@ class MDR(Component):
                 else:
                     return []
             case "Memory":
-                #do something
-                #update memory
+                memoryUpdated = True
+                s.inBits.copyBits(caller.MDROutBits)
                 pass
 
-        #if here only update B bus if output is enabled
         if (not s.enableOutput):
-            return []
+            if(not memoryUpdated):
+                return [UpdateEntry(s.Memory, s, currentTime)]
+            else: 
+                return []
 
+        print("Updating bus B because of: ",caller.label)
         updateList : list[UpdateEntry] = []
+        if (not memoryUpdated):
+            updateList.append(UpdateEntry(s.Memory, s, currentTime))
+
         for dependent in s.dependents:
             updateList.append(UpdateEntry(dependent, s, currentTime))
         return updateList
 
 class PC(Component):
-    def __init__(s, updateDelay: int, memory : Memory):
+    def __init__(s, updateDelay: int):
         super().__init__(updateDelay, "PC")
         s.comingBits = BitData(32) 
         s.inBits = BitData(32) 
         s.outBits = BitData(32) 
         s.enableOutput : bool = False 
         s.enableInput : bool = False
-        s.memory = memory
 
     def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
         match caller.label:
@@ -599,8 +709,6 @@ class PC(Component):
                 else:
                     return []
             case "Memory":
-                #do something
-                #update memory
                 pass
 
         #if here only update B bus if output is enabled
