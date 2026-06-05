@@ -3,8 +3,15 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import scrolledtext
 from tkinter import Image
+from time import sleep
 
 computer : Computer = Computer()
+computer.Memory.loadProgram("macroprogram.txt")
+
+mainWindow = tk.Tk()
+font = ("Times New Roman", 20)
+HIntLabel = ttk.Label(mainWindow, text = "", font = font)
+HIntLabel.grid()
 
 def createRegisterLabel(registersWindow, font, register: Component, bits: BitData, row : int):
     labelLabel : ttk.Label = ttk.Label(registersWindow, text=register.label, font=font, justify='left', anchor='w')
@@ -22,16 +29,32 @@ def updateLabelsList(labels):
         for i in range(bits.length):
             lstr += str(bits.bits[i])
         bitsLabel.configure(text=lstr)
-
 registerLabels = []
 debugLabels = []
+
+def tksleep(t):
+    ms = int(t*1)
+    root = tk._get_default_root('sleep')
+    var = tk.IntVar(root)
+    root.after(ms, var.set, 1)
+    root.wait_variable(var)
 
 def update():
     computer.update()
     updateLabelsList(registerLabels)
     updateLabelsList(debugLabels)
-mainWindow = tk.Tk()
-font = ("Times New Roman", 20)
+def nextCycle():
+    while True:
+        tksleep(5)
+        computer.update()
+        updateLabelsList(registerLabels)
+        updateLabelsList(debugLabels)
+        HIntLabel.configure(text=str(computer.H.inBits.toInteger()))
+
+    for i in range(48):
+        computer.update()
+        updateLabelsList(registerLabels)
+        updateLabelsList(debugLabels)
 
 mainWindow.title( "main" )
 ttk.Button(mainWindow, text="Quit", command=mainWindow.destroy).grid(column=1, row=0)
@@ -52,6 +75,7 @@ simulationWindow.minsize(600, 300)
 simulationWindowfrm = ttk.Frame(simulationWindow, padding=10)
 simulationWindowfrm.grid()
 ttk.Button(simulationWindow, text="Update", command=update).grid(column=1,row=0)
+ttk.Button(simulationWindow, text="next cycle", command=nextCycle).grid(column=2,row=0)
 
 registersWindow = tk.Toplevel( mainWindow )
 registersWindow.transient( mainWindow )
@@ -59,16 +83,16 @@ registersWindow.title( "Registradores" )
 registersWindow.minsize(600, 300)
 ttk.Separator(registersWindow).grid(column=0, row=1)
 
-registerLabels.append(createRegisterLabel(registersWindow, font, computer.MAR, computer.MAR.outBits, len(registerLabels)))
-registerLabels.append(createRegisterLabel(registersWindow, font, computer.MDR, computer.MDR.outBits, len(registerLabels)))
-registerLabels.append(createRegisterLabel(registersWindow, font, computer.PC, computer.PC.outBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.MAR, computer.MAR.inBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.MDR, computer.MDR.inBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.PC, computer.PC.inBits, len(registerLabels)))
 registerLabels.append(createRegisterLabel(registersWindow, font, computer.MBR, computer.MBR.inBits, len(registerLabels)))
-registerLabels.append(createRegisterLabel(registersWindow, font, computer.SP, computer.SP.outBits, len(registerLabels)))
-registerLabels.append(createRegisterLabel(registersWindow, font, computer.LV, computer.LV.outBits, len(registerLabels)))
-registerLabels.append(createRegisterLabel(registersWindow, font, computer.CPP, computer.CPP.outBits, len(registerLabels)))
-registerLabels.append(createRegisterLabel(registersWindow, font, computer.TOS, computer.TOS.outBits, len(registerLabels)))
-registerLabels.append(createRegisterLabel(registersWindow, font, computer.OPC, computer.OPC.outBits, len(registerLabels)))
-registerLabels.append(createRegisterLabel(registersWindow, font, computer.H, computer.H.outBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.SP, computer.SP.inBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.LV, computer.LV.inBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.CPP, computer.CPP.inBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.TOS, computer.TOS.inBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.OPC, computer.OPC.inBits, len(registerLabels)))
+registerLabels.append(createRegisterLabel(registersWindow, font, computer.H, computer.H.inBits, len(registerLabels)))
 registerLabels.append(createRegisterLabel(registersWindow, font, computer.MIR, computer.MIR.outBits, len(registerLabels)))
 registerLabels.append(createRegisterLabel(registersWindow, font, computer.MPC, computer.MPC.outBits, len(registerLabels)))
 
@@ -85,14 +109,13 @@ debugLabels.append(createRegisterLabel(debugWindow, font, computer.Memory, compu
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.MemoryControlLine, computer.MemoryControlLine.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Abus, computer.Abus.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Bbus, computer.Bbus.outBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.Cbus, computer.Cbus.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Decoder, computer.Decoder.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.controlMemory, computer.controlMemory.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.controlMemory, computer.controlMemory.MPCBits, len(debugLabels)))
 
 
 
-print(CodeTextInput.configure().keys())
-print(CodeTextInput.configure()["font"])
 
 def closer( event ):
     mainWindow.destroy()

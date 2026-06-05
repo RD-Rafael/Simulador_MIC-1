@@ -7,8 +7,9 @@ class UpdateSequencer:
     clock : Clock = Clock()
     pendingUpdates : dict[int, list[UpdateEntry]] = dict()
 
-    def __init__(s, controlMemory : ControlMemory):
+    def __init__(s, controlMemory : ControlMemory, memory : Memory):
         s.controlMemory = controlMemory
+        s.memory = Memory 
         s.controlMemory.loadMicrocode("malcodeoutput.txt")
         s.registers = []
         s.clockComponent = Component(1, "Clock")
@@ -29,6 +30,9 @@ class UpdateSequencer:
             s.pendingUpdates[currTime] = []
             for register in s.registers:
                 s.pendingUpdates[currTime].append(UpdateEntry(register, s.clockComponent, currTime))
+            
+            s.pendingUpdates[currTime].append(UpdateEntry(s.memory, s.clockComponent, currTime))
+            
 
         if(s.pendingUpdates.get(currTime) == None):
             s.pendingUpdates[currTime] = []
@@ -59,7 +63,7 @@ class UpdateSequencer:
 class Computer:
     def __init__(s):
         s.controlMemory = ControlMemory(6)
-        s.updateSequencer = UpdateSequencer(s.controlMemory)
+        s.updateSequencer = UpdateSequencer(s.controlMemory, None)
 
         s.ALU = ALU(5)
         s.Shifter = Shifter(5)
@@ -71,13 +75,15 @@ class Computer:
         
         s.MIR = MIR(2)
         s.MAR = MAR(5)
-        s.MBR = MBR(5)
+        s.ORUnit = ORUnit(1)
+        s.MBR = MBR(5, s.ORUnit)
         s.MPC = MPC(5)
         s.MDR = MDR(5, None)
         s.PC = PC(5)
         
         s.Memory = Memory(1, s.MBR, s.MDR)
         s.MDR.Memory = s.Memory
+        s.updateSequencer.memory = s.Memory
         #MIR lines
         s.AddrLine = Line(1, "Addr line", 9, 0)
         s.JMPCLine = Line(1, "JMPC line", 1, 9)
@@ -96,7 +102,6 @@ class Computer:
         s.MemoryControlLine = Line(1, "Memory control line", 3, 29)
         s.BDecoderLine = Line(1, "B decoder line", 4, 32)
 
-        s.ORUnit = ORUnit(1)
         s.Decoder = Decoder(2)
         #NAO SEI SE ESTÁ NA ORDEM CERTA
         s.MDREnableOutput = Line(1, "enable output", 1, 0)
@@ -221,8 +226,8 @@ class Computer:
         s.Memory.addDependent(s.MBR)
 
         s.updateSequencer.addRegister(s.MAR)
-#       .updateSequencer.addRegister(s.MDR)
-#       .updateSequencer.addRegister(s.PC)
+        s.updateSequencer.addRegister(s.MDR)
+        s.updateSequencer.addRegister(s.PC)
         s.updateSequencer.addRegister(s.MBR)
         s.updateSequencer.addRegister(s.SP)
         s.updateSequencer.addRegister(s.LV)

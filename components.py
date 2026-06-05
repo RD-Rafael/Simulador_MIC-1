@@ -432,7 +432,7 @@ class Decoder(Component):
         s.inBits.copyBits(caller.outBits)
 
         s.outBits.clear()
-        s.outBits.bits[s.outBits.length - s.inBits.toInteger() - 1] = 1
+        s.outBits.bits[s.inBits.toInteger()] = 1
 
         updateList : list[UpdateEntry] = []
         for dependent in s.dependents:
@@ -440,15 +440,17 @@ class Decoder(Component):
         return updateList
 
 class MBR(Component):
-    def __init__(s, updateDelay: int):
+    def __init__(s, updateDelay: int, orUnit: ORUnit):
         super().__init__(updateDelay, "MBR")
         s.inBits = BitData(8) 
         s.outBits = BitData(32) 
         s.output1 = False
         s.output2 = False
+        s.ORUnit = orUnit
 
     def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
         #update stats
+        updateList : list[UpdateEntry] = []
         match caller.label:
             case "enable output1":
                 if(caller.outBits.bits[0] == 0):
@@ -462,10 +464,11 @@ class MBR(Component):
                     s.output2 = True
             case "Memory":
                 s.inBits.copyBits(caller.MBROutBits)
+                updateList.append(UpdateEntry(s.ORUnit, s, currentTime))
             
         if(not (s.output1 or s.output2)):
             s.outBits.clear()
-            return []
+            return updateList
         else:
             if(s.output1):
                 for i in range(24):
@@ -477,7 +480,6 @@ class MBR(Component):
                 s.outBits.bits[i+24] = s.inBits.bits[i]
             pass
 
-        updateList : list[UpdateEntry] = []
         for dependent in s.dependents:
             updateList.append(UpdateEntry(dependent, s, currentTime))
         return updateList
@@ -553,35 +555,51 @@ class Memory(Component):
                 s.write = caller.outBits.bits[0]
                 s.read = caller.outBits.bits[1]
                 s.fetch = caller.outBits.bits[2]
+                return []
                 pass
             case "MAR":
                 #s.MARBits.copyBits(caller.outBits)
                 s.MARBits.bits[0] = 0
                 s.MARBits.bits[1] = 0
                 s.wordAddress = s.MARBits.toInteger()*4
+                return []
                 pass
             case "MDR":
                 s.MDRBits.copyBits(caller.outBits)
+                return []
                 pass
             case "PC":
                 s.PCBits.copyBits(caller.outBits)
                 s.byteAddress = s.PCBits.toInteger()
+                return []
                 pass
-        
-        if(s.fetch):
-            s.MBROutBits.copyBitSection(s.memoryBits, s.byteAddress*8)
-            updateList.append(UpdateEntry(s.MBR, s, currentTime))
-        if(s.read):
-            s.MDROutBits.copyBitSection(s.memoryBits, s.wordAddress*8)
-            s.MDRBits.copyBitSection(s.memoryBits, s.wordAddress*8)
-            updateList.append(UpdateEntry(s.MDR, s, currentTime))
-        if(s.write):
-            print("writing!")
-            for i in range(s.MDRBits.length):
-                s.memoryBits.bits[s.wordAddress*8 + i] = s.MDRBits.bits[i]
+            case "Clock":
+                if(s.fetch):
+                    s.MBROutBits.copyBitSection(s.memoryBits, s.byteAddress*8)
+                    updateList.append(UpdateEntry(s.MBR, s, currentTime))
+                if(s.read):
+                    s.MDROutBits.copyBitSection(s.memoryBits, s.wordAddress*8)
+                    s.MDRBits.copyBitSection(s.memoryBits, s.wordAddress*8)
+                    updateList.append(UpdateEntry(s.MDR, s, currentTime))
+                if(s.write):
+                    print("writing!")
+                    for i in range(s.MDRBits.length):
+                        s.memoryBits.bits[s.wordAddress*8 + i] = s.MDRBits.bits[i]
             
         return updateList
-    
+    def loadProgram(s, fileName: str):
+        bitIdx = 0
+        with open(fileName) as f:
+            for line in f:
+                print(line)
+                for char in line:
+                    if(char == '\n'):
+                        continue
+                    s.memoryBits.bits[bitIdx] = int(char)
+                    bitIdx+=1
+                        
+
+
 class MAR(Component):
     def __init__(s, updateDelay: int):
         super().__init__(updateDelay, "MAR")
@@ -589,7 +607,7 @@ class MAR(Component):
         s.inBits = BitData(32) 
         s.outBits = BitData(32) 
         s.enableOutput : bool = False 
-        s.enableInput : bool = True
+        s.enableInput : bool = False
 
     def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
         match caller.label:
@@ -600,6 +618,12 @@ class MAR(Component):
                 else:
                     s.enableOutput = True
                     s.outBits.copyBits(s.inBits)
+            case "enable input":
+                if caller.outBits.bits[0] == 0:
+                    s.enableInput = False
+                else:
+                    s.enableInput = True
+                    s.inBits.copyBits(s.comingBits)
             case "C bus":
                 s.comingBits.copyBits(caller.outBits)
             case "Clock":
@@ -636,6 +660,7 @@ class MDR(Component):
                     s.enableInput = False
                 else:
                     s.enableInput = True
+                return []
             case "enable output":
                 if caller.outBits.bits[0] == 0:
                     s.enableOutput = False
@@ -645,6 +670,7 @@ class MDR(Component):
                     s.outBits.copyBits(s.inBits)
             case "C bus":
                 s.comingBits.copyBits(caller.outBits)
+                return []
             case "Clock":
                 if (s.enableInput):
                     s.inBits.copyBits(s.comingBits)

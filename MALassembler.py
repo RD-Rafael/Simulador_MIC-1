@@ -156,8 +156,19 @@ with open("malcodeinput.txt") as f:
                 otherRegister = ""
                 operationSign = ""
                 if(len(operationParts) == 1):
-                    otherRegister = operationParts[0].strip()
+                    if(operationParts[0] != "" and operationParts[0] != "H"):
+                        instructionObj.adjacentBits.bits[16] = 0 #ENA = 0
+                        instructionObj.adjacentBits.bits[17] = 1 #ENB = 1
+                        otherRegister = operationParts[0].strip()
+                    elif (operationParts[0] != ""):
+                        instructionObj.adjacentBits.bits[16] = 1 #ENA = 1
+                        instructionObj.adjacentBits.bits[17] = 0 #ENB = 0
+                    else:
+                        #empty instruction
+                        pass
                 else:
+                    instructionObj.adjacentBits.bits[16] = 1 #ENA = 1
+                    instructionObj.adjacentBits.bits[17] = 1 #ENB = 1
                     if(operationParts[0] != "H"):
                         otherRegister = operationParts[0].strip()
                     else:
@@ -264,7 +275,9 @@ with open("malcodeinput.txt") as f:
     for i in range(len(instructions)):
         ins = instructionObjs[i]
         program[instructionIdAddress[i]].copyBits(ins.adjacentBits)
-    
+
+for key in labelInstructionId:
+    print(key, instructionIdAddress[labelInstructionId[key]])
 
 with open("malcodeoutput.txt", mode="w") as f:
     for bitData in program:

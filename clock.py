@@ -1,6 +1,6 @@
 
 class Clock:
-    pulseWidth : int = 10
+    pulseWidth : int = 14
     clockInterval : int = 38 #full Cycle = pulseWidth + clockInterval
     currentTime : int = 0 #0: descending Pulse
 
