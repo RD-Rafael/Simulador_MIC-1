@@ -43,18 +43,32 @@ def update():
     computer.update()
     updateLabelsList(registerLabels)
     updateLabelsList(debugLabels)
+
+def reset():
+    computer.reset()
+    computer.Memory.loadProgram("macroprogram.txt")
+
 def nextCycle():
-    while True:
-        tksleep(5)
+    root = tk._get_default_root('Running')
+    runningConstantly = tk.BooleanVar(root)
+    for i in range(52):
+        computer.update()
+        updateLabelsList(registerLabels)
+        updateLabelsList(debugLabels)
+        HIntLabel.configure(text=str(computer.Memory.byteAddress) + " " + str(computer.Memory.wordAddress))
+    return
+    while runningConstantly:
+        tksleep(50)
         computer.update()
         updateLabelsList(registerLabels)
         updateLabelsList(debugLabels)
         HIntLabel.configure(text=str(computer.H.inBits.toInteger()))
 
-    for i in range(48):
-        computer.update()
-        updateLabelsList(registerLabels)
-        updateLabelsList(debugLabels)
+def toggleRunningConstantly():
+    root = tk._get_default_root('Running')
+    runningConstantly = tk.BooleanVar(root)
+    runningConstantly.set(not runningConstantly.get())
+    nextCycle()
 
 mainWindow.title( "main" )
 ttk.Button(mainWindow, text="Quit", command=mainWindow.destroy).grid(column=1, row=0)
@@ -75,7 +89,8 @@ simulationWindow.minsize(600, 300)
 simulationWindowfrm = ttk.Frame(simulationWindow, padding=10)
 simulationWindowfrm.grid()
 ttk.Button(simulationWindow, text="Update", command=update).grid(column=1,row=0)
-ttk.Button(simulationWindow, text="next cycle", command=nextCycle).grid(column=2,row=0)
+ttk.Button(simulationWindow, text="next cycle", command=toggleRunningConstantly).grid(column=2,row=0)
+ttk.Button(simulationWindow, text="reset", command=reset).grid(column=3,row=0)
 
 registersWindow = tk.Toplevel( mainWindow )
 registersWindow.transient( mainWindow )
@@ -113,9 +128,6 @@ debugLabels.append(createRegisterLabel(debugWindow, font, computer.Cbus, compute
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Decoder, computer.Decoder.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.controlMemory, computer.controlMemory.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.controlMemory, computer.controlMemory.MPCBits, len(debugLabels)))
-
-
-
 
 def closer( event ):
     mainWindow.destroy()

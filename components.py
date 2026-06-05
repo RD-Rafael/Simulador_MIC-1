@@ -1,7 +1,6 @@
 def xor(A: int, B : int):
     return not ( (A and B) or (not ((B) or (A))) )
 
-
 class UpdateEntry:
     def __init__(s, component : Component, caller : Component, timeIdx : int):
         s.component = component
@@ -598,8 +597,6 @@ class Memory(Component):
                     s.memoryBits.bits[bitIdx] = int(char)
                     bitIdx+=1
                         
-
-
 class MAR(Component):
     def __init__(s, updateDelay: int):
         super().__init__(updateDelay, "MAR")
