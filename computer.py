@@ -9,7 +9,7 @@ class UpdateSequencer:
 
     def __init__(s, controlMemory : ControlMemory, memory : Memory):
         s.controlMemory = controlMemory
-        s.memory = Memory 
+        s.memory = memory 
         s.controlMemory.loadMicrocode("malcodeoutput.txt")
         s.registers = []
         s.clockComponent = Component(1, "Clock")
@@ -23,26 +23,30 @@ class UpdateSequencer:
         if(currTime == 0): #descending signal
             #update control Memory
             entry = UpdateEntry(s.controlMemory, s.clockComponent, s.controlMemory.updateDelay)
-            s.pendingUpdates[entry.timeIdx] = [entry]
+            if(s.pendingUpdates.get(entry.timeIdx) == None):
+                s.pendingUpdates[entry.timeIdx] = []
+            s.pendingUpdates[entry.timeIdx].append(entry)
         
         elif(currTime == s.clock.clockInterval): #ascending signal
             #update Registers
             s.pendingUpdates[currTime] = []
             for register in s.registers:
                 s.pendingUpdates[currTime].append(UpdateEntry(register, s.clockComponent, currTime))
-            
-            s.pendingUpdates[currTime].append(UpdateEntry(s.memory, s.clockComponent, currTime))
-            
+
+            memoryUpdateTimeIdx = (currTime + s.memory.updateDelay)%(Clock.clockInterval+Clock.pulseWidth)
+
+            if(s.pendingUpdates.get(memoryUpdateTimeIdx) == None):
+                s.pendingUpdates[memoryUpdateTimeIdx] = []
+            s.pendingUpdates[memoryUpdateTimeIdx].append(UpdateEntry(s.memory, s.clockComponent, memoryUpdateTimeIdx))
 
         if(s.pendingUpdates.get(currTime) == None):
             s.pendingUpdates[currTime] = []
-        updatesForNow = s.pendingUpdates[currTime]
+        updatesForNow = list(s.pendingUpdates[currTime])
         res =[]
         for update in updatesForNow:
             res.append([update.caller.label, update.component.label])
-        print(res)
+        #print(res)
         for entry in updatesForNow:
-            #print("updating " + entry.component.label + "...")
             newUpdates : list[UpdateEntry] = entry.component.update(currTime, entry.caller)
             if newUpdates == None:
                 continue
@@ -55,9 +59,10 @@ class UpdateSequencer:
                     if(pendingUpdate.caller == newEntry.caller and pendingUpdate.component == newEntry.component):
                         foundDuplicate = True
                 if(not foundDuplicate):
-                    s.pendingUpdates[updateTime].append(newEntry)
+                    s.pendingUpdates[updateTime].append(UpdateEntry(newEntry.component, newEntry.caller, updateTime))
 
         s.pendingUpdates[currTime].clear()
+
         s.clock.timeStep()
                 
 class Computer:
@@ -81,7 +86,7 @@ class Computer:
         s.MDR = MDR(5, None)
         s.PC = PC(5)
         
-        s.Memory = Memory(1, s.MBR, s.MDR)
+        s.Memory = Memory(40, s.MBR, s.MDR)
         s.MDR.Memory = s.Memory
         s.updateSequencer.memory = s.Memory
         #MIR lines
@@ -286,7 +291,6 @@ class Computer:
         s.MPC.outBits.clear()
         s.OPC.inBits.clear()
         s.PC.inBits.clear()
-        s.SP.inBits.clear()
         s.TOS.inBits.clear()
         s.ZFF.inBits.clear()
         s.updateSequencer.clock.currentTime = 0

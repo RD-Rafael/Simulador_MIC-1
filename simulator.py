@@ -121,6 +121,8 @@ debugLabels.append(createRegisterLabel(debugWindow, font, computer.Shifter, comp
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.ALU, computer.ALU.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.ALUControlLine, computer.ALUControlLine.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Memory, computer.Memory.PCBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.Memory, computer.Memory.MDRBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.Memory, computer.Memory.MDROutBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.MemoryControlLine, computer.MemoryControlLine.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Abus, computer.Abus.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Bbus, computer.Bbus.outBits, len(debugLabels)))

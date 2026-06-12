@@ -389,7 +389,7 @@ class ControlMemory(Component):
                 s.currentAddress.copyBits(s.MPCBits)
                 addressInteger : int = s.currentAddress.toInteger()*36
                 s.outBits.copyBitSection(s.bits, addressInteger)
-                print(s.outBits.bits)
+                #print(s.outBits.bits)
                 pass
             case "MPC bus":
                 s.MPCBits.copyBits(caller.outBits)
@@ -463,7 +463,7 @@ class MBR(Component):
                     s.output2 = True
             case "Memory":
                 s.inBits.copyBits(caller.MBROutBits)
-                updateList.append(UpdateEntry(s.ORUnit, s, currentTime))
+                updateList.append(UpdateEntry(s.ORUnit, s, currentTime + caller.updateDelay))
             
         if(not (s.output1 or s.output2)):
             s.outBits.clear()
@@ -543,7 +543,6 @@ class Memory(Component):
         s.write = False
         s.read = False
         s.fetch = False
-        print(s.memoryBits.bits)
 
     def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
         #update stats
@@ -554,36 +553,39 @@ class Memory(Component):
                 s.write = caller.outBits.bits[0]
                 s.read = caller.outBits.bits[1]
                 s.fetch = caller.outBits.bits[2]
-                return []
-                pass
-            case "MAR":
-                #s.MARBits.copyBits(caller.outBits)
-                s.MARBits.bits[0] = 0
-                s.MARBits.bits[1] = 0
-                s.wordAddress = s.MARBits.toInteger()*4
-                return []
-                pass
-            case "MDR":
-                s.MDRBits.copyBits(caller.outBits)
-                return []
-                pass
-            case "PC":
-                s.PCBits.copyBits(caller.outBits)
-                s.byteAddress = s.PCBits.toInteger()
-                return []
-                pass
-            case "Clock":
                 if(s.fetch):
+                    print("fetching!")
                     s.MBROutBits.copyBitSection(s.memoryBits, s.byteAddress*8)
                     updateList.append(UpdateEntry(s.MBR, s, currentTime))
                 if(s.read):
+                    print("reading!")
                     s.MDROutBits.copyBitSection(s.memoryBits, s.wordAddress*8)
                     s.MDRBits.copyBitSection(s.memoryBits, s.wordAddress*8)
                     updateList.append(UpdateEntry(s.MDR, s, currentTime))
                 if(s.write):
                     print("writing!")
+                    print(s.MDRBits.bits)
                     for i in range(s.MDRBits.length):
                         s.memoryBits.bits[s.wordAddress*8 + i] = s.MDRBits.bits[i]
+                pass
+            case "MAR":
+                #s.MARBits.copyBits(caller.outBits)
+                s.MARBits.bits[0] = 0
+                s.MARBits.bits[1] = 0
+                s.wordAddress = caller.inBits.toInteger()*4
+                return []
+                pass
+            case "MDR":
+                s.MDRBits.copyBits(caller.inBits)
+                return []
+                pass
+            case "PC":
+                s.PCBits.copyBits(caller.inBits)
+                s.byteAddress = s.PCBits.toInteger()
+                return []
+                pass
+            case "Clock":
+                pass
             
         return updateList
     def loadProgram(s, fileName: str):
@@ -596,6 +598,7 @@ class Memory(Component):
                         continue
                     s.memoryBits.bits[bitIdx] = int(char)
                     bitIdx+=1
+            #print(s.memoryBits.bits)
                         
 class MAR(Component):
     def __init__(s, updateDelay: int):
@@ -691,7 +694,7 @@ class MDR(Component):
         print("Updating bus B because of: ",caller.label)
         updateList : list[UpdateEntry] = []
         if (not memoryUpdated):
-            updateList.append(UpdateEntry(s.Memory, s, currentTime))
+            updateList.append(UpdateEntry(s.Memory, s, currentTime + s.Memory.updateDelay))
 
         for dependent in s.dependents:
             updateList.append(UpdateEntry(dependent, s, currentTime))
