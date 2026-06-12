@@ -7,6 +7,7 @@ from time import sleep
 
 computer : Computer = Computer()
 computer.Memory.loadProgram("macroprogram.txt")
+computer.updateSequencer.pendingUpdates[0] = [UpdateEntry(computer.MBR, computer.Memory, 0)]
 
 mainWindow = tk.Tk()
 font = ("Times New Roman", 20)
@@ -78,10 +79,10 @@ codeWindow = tk.Toplevel( mainWindow )
 codeWindow.transient( mainWindow )
 codeWindow.title( "Montador" )
 codeWindow.minsize(600, 300)
-codeWindow.geometry("400x600+600+0")
+codeWindow.geometry("400x470+600+0")
 codeWindowfrm = ttk.Frame(codeWindow, padding=10)
 codeWindowfrm.grid()
-CodeTextInput = scrolledtext.ScrolledText(codeWindowfrm, width = 25, height = 30, font = font)
+CodeTextInput = scrolledtext.ScrolledText(codeWindowfrm, width = 25, height = 14, font = font)
 CodeTextInput.grid(column=2, row=0)
 
 simulationWindow = tk.Toplevel( mainWindow )
@@ -98,7 +99,7 @@ registersWindow = tk.Toplevel( mainWindow )
 registersWindow.transient( mainWindow )
 registersWindow.title( "Registradores" )
 registersWindow.minsize(600, 300)
-registersWindow.geometry("600x450+0+0")
+registersWindow.geometry("600x470+0+0")
 ttk.Separator(registersWindow).grid(column=0, row=1)
 
 registerLabels.append(createRegisterLabel(registersWindow, font, computer.MAR, computer.MAR.inBits, len(registerLabels)))
@@ -118,7 +119,7 @@ debugWindow = tk.Toplevel( mainWindow )
 debugWindow.transient( mainWindow )
 debugWindow.title( "Debug" )
 debugWindow.minsize(600, 300)
-debugWindow.geometry("600x500+0+500")
+debugWindow.geometry("800x500+0+500")
 ttk.Separator(debugWindow).grid(column=0, row=1)
 
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Shifter, computer.Shifter.outBits, len(debugLabels)))

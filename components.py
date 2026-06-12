@@ -240,7 +240,6 @@ class ALU(Component):
         
         if(F0 == 0 and F1 == 0):
             #soma
-            print(INC)
             carry = INC
             for i in range(s.inA.length):
                 idx = s.inA.length - i -1
@@ -582,7 +581,11 @@ class Memory(Component):
             case "PC":
                 s.PCBits.copyBits(caller.inBits)
                 s.byteAddress = s.PCBits.toInteger()
-                return []
+                s.MBROutBits.copyBitSection(s.memoryBits, s.byteAddress*8)
+                if s.fetch:
+                    updateList.append(UpdateEntry(s.MBR, s, currentTime))
+                else:
+                    return []
                 pass
             case "Clock":
                 pass
@@ -598,7 +601,9 @@ class Memory(Component):
                         continue
                     s.memoryBits.bits[bitIdx] = int(char)
                     bitIdx+=1
-            #print(s.memoryBits.bits)
+
+        #Só atualizando direto aqui porque é o início do programa
+        s.MBROutBits.copyBitSection(s.memoryBits, s.byteAddress*8)
                         
 class MAR(Component):
     def __init__(s, updateDelay: int):
@@ -708,6 +713,7 @@ class PC(Component):
         s.outBits = BitData(32) 
         s.enableOutput : bool = False 
         s.enableInput : bool = False
+        s.Memory = None
 
     def update(s, currentTime : int, caller : Component) -> list[UpdateEntry]:
         match caller.label:
@@ -731,7 +737,7 @@ class PC(Component):
                     if (s.enableOutput):
                         s.outBits.copyBits(s.inBits)
                     else:
-                        return []
+                        return [UpdateEntry(s.PC.Memory,s, currentTime)]
                 else:
                     return []
             case "Memory":

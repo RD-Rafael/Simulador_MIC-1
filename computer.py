@@ -45,7 +45,7 @@ class UpdateSequencer:
         res =[]
         for update in updatesForNow:
             res.append([update.caller.label, update.component.label])
-        #print(res)
+        print(res)
         for entry in updatesForNow:
             newUpdates : list[UpdateEntry] = entry.component.update(currTime, entry.caller)
             if newUpdates == None:
@@ -87,6 +87,7 @@ class Computer:
         s.PC = PC(5)
         
         s.Memory = Memory(40, s.MBR, s.MDR)
+        s.PC.Memory = s.Memory
         s.MDR.Memory = s.Memory
         s.updateSequencer.memory = s.Memory
         #MIR lines
