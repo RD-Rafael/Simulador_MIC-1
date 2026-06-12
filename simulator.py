@@ -7,7 +7,7 @@ from time import sleep
 
 computer : Computer = Computer()
 computer.Memory.loadProgram("macroprogram.txt")
-computer.updateSequencer.pendingUpdates[0] = [UpdateEntry(computer.MBR, computer.Memory, 0)]
+computer.updateSequencer.pendingUpdates[0] = [UpdateEntry(computer.MBR, computer.Memory, 0, None)]
 
 mainWindow = tk.Tk()
 font = ("Times New Roman", 20)
@@ -123,6 +123,7 @@ debugWindow.geometry("800x500+0+500")
 ttk.Separator(debugWindow).grid(column=0, row=1)
 
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Shifter, computer.Shifter.outBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.ShifterControlLine, computer.ShifterControlLine.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.ALU, computer.ALU.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.ALUControlLine, computer.ALUControlLine.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Memory, computer.Memory.PCBits, len(debugLabels)))

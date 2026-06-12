@@ -107,7 +107,7 @@ with open("malcodeinput.txt") as f:
             else:
                 # something = something
                 if(part.endswith("<< 8")):
-                    instructionObj.adjacentBits.bits[12] #SLL8
+                    instructionObj.adjacentBits.bits[12] = 1 #SLL8
                     part = part.removesuffix("<< 8")
                     part = part.strip()
                 

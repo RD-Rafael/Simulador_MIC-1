@@ -22,7 +22,7 @@ class UpdateSequencer:
         currTime : int = s.clock.getTime()
         if(currTime == 0): #descending signal
             #update control Memory
-            entry = UpdateEntry(s.controlMemory, s.clockComponent, s.controlMemory.updateDelay)
+            entry = UpdateEntry(s.controlMemory, s.clockComponent, s.controlMemory.updateDelay, None)
             if(s.pendingUpdates.get(entry.timeIdx) == None):
                 s.pendingUpdates[entry.timeIdx] = []
             s.pendingUpdates[entry.timeIdx].append(entry)
@@ -31,13 +31,13 @@ class UpdateSequencer:
             #update Registers
             s.pendingUpdates[currTime] = []
             for register in s.registers:
-                s.pendingUpdates[currTime].append(UpdateEntry(register, s.clockComponent, currTime))
+                s.pendingUpdates[currTime].append(UpdateEntry(register, s.clockComponent, currTime, None))
 
             memoryUpdateTimeIdx = (currTime + s.memory.updateDelay)%(Clock.clockInterval+Clock.pulseWidth)
 
             if(s.pendingUpdates.get(memoryUpdateTimeIdx) == None):
                 s.pendingUpdates[memoryUpdateTimeIdx] = []
-            s.pendingUpdates[memoryUpdateTimeIdx].append(UpdateEntry(s.memory, s.clockComponent, memoryUpdateTimeIdx))
+            s.pendingUpdates[memoryUpdateTimeIdx].append(UpdateEntry(s.memory, s.clockComponent, memoryUpdateTimeIdx, None))
 
         if(s.pendingUpdates.get(currTime) == None):
             s.pendingUpdates[currTime] = []
@@ -47,7 +47,7 @@ class UpdateSequencer:
             res.append([update.caller.label, update.component.label])
         print(res)
         for entry in updatesForNow:
-            newUpdates : list[UpdateEntry] = entry.component.update(currTime, entry.caller)
+            newUpdates : list[UpdateEntry] = entry.component.update(currTime, entry)
             if newUpdates == None:
                 continue
             for newEntry in newUpdates:
@@ -59,7 +59,7 @@ class UpdateSequencer:
                     if(pendingUpdate.caller == newEntry.caller and pendingUpdate.component == newEntry.component):
                         foundDuplicate = True
                 if(not foundDuplicate):
-                    s.pendingUpdates[updateTime].append(UpdateEntry(newEntry.component, newEntry.caller, updateTime))
+                    s.pendingUpdates[updateTime].append(UpdateEntry(newEntry.component, newEntry.caller, updateTime, newEntry.information))
 
         s.pendingUpdates[currTime].clear()
 
