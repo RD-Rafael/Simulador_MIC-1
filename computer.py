@@ -33,33 +33,46 @@ class UpdateSequencer:
             for register in s.registers:
                 s.pendingUpdates[currTime].append(UpdateEntry(register, s.clockComponent, currTime, None))
 
-            memoryUpdateTimeIdx = (currTime + s.memory.updateDelay)%(Clock.clockInterval+Clock.pulseWidth)
-
-            if(s.pendingUpdates.get(memoryUpdateTimeIdx) == None):
-                s.pendingUpdates[memoryUpdateTimeIdx] = []
-            s.pendingUpdates[memoryUpdateTimeIdx].append(UpdateEntry(s.memory, s.clockComponent, memoryUpdateTimeIdx, None))
-
         if(s.pendingUpdates.get(currTime) == None):
             s.pendingUpdates[currTime] = []
-        updatesForNow = list(s.pendingUpdates[currTime])
+
+        updatesForNow = []
+
+        for i in range(len(s.pendingUpdates[currTime])):
+            entry = s.pendingUpdates[currTime][i]
+            #catch updates that are not for this cycle
+            if(entry.timeIdx != currTime):
+                entry.timeIdx -= (s.clock.clockInterval + s.clock.pulseWidth)
+                s.pendingUpdates[currTime][i] = entry
+            else:
+                updatesForNow.append(entry)
+
+
+
+
         res =[]
         for update in updatesForNow:
             res.append([update.caller.label, update.component.label])
         print(res)
+
         for entry in updatesForNow:
             newUpdates : list[UpdateEntry] = entry.component.update(currTime, entry)
             if newUpdates == None:
                 continue
             for newEntry in newUpdates:
-                updateTime : int = (currTime + newEntry.component.updateDelay)%(s.clock.clockInterval + s.clock.pulseWidth)
-                if s.pendingUpdates.get(updateTime) == None:
-                    s.pendingUpdates[updateTime] = []
+                updateTime : int = (currTime + newEntry.component.updateDelay)
+                if(updateTime > (s.clock.clockInterval + s.clock.pulseWidth)):
+                    updateTime -= (s.clock.clockInterval + s.clock.pulseWidth)
+                updateTimeModulo = updateTime%(s.clock.clockInterval + s.clock.pulseWidth)
+
+                if s.pendingUpdates.get(updateTimeModulo) == None:
+                    s.pendingUpdates[updateTimeModulo] = []
                 foundDuplicate = False
-                for pendingUpdate in s.pendingUpdates[updateTime]:
-                    if(pendingUpdate.caller == newEntry.caller and pendingUpdate.component == newEntry.component):
+                for pendingUpdate in s.pendingUpdates[updateTimeModulo]:
+                    if(pendingUpdate.caller == newEntry.caller and pendingUpdate.component == newEntry.component and pendingUpdate.timeIdx == updateTime):
                         foundDuplicate = True
                 if(not foundDuplicate):
-                    s.pendingUpdates[updateTime].append(UpdateEntry(newEntry.component, newEntry.caller, updateTime, newEntry.information))
+                    s.pendingUpdates[updateTimeModulo].append(UpdateEntry(newEntry.component, newEntry.caller, updateTime, newEntry.information))
 
         s.pendingUpdates[currTime].clear()
 
@@ -86,7 +99,7 @@ class Computer:
         s.MDR = MDR(5, None)
         s.PC = PC(5)
         
-        s.Memory = Memory(40, s.MBR, s.MDR)
+        s.Memory = Memory(90, s.MBR, s.MDR)
         s.PC.Memory = s.Memory
         s.MDR.Memory = s.Memory
         s.updateSequencer.memory = s.Memory
@@ -226,10 +239,11 @@ class Computer:
         s.OPC.addDependent(s.Bbus)
         s.H.addDependent(s.Abus)
 
-        s.MAR.addDependent(s.Memory)
+
+        #s.MAR.addDependent(s.Memory)
         s.PC.addDependent(s.Memory)
-        s.Memory.addDependent(s.MDR)
-        s.Memory.addDependent(s.MBR)
+        #s.Memory.addDependent(s.MDR)
+        #s.Memory.addDependent(s.MBR)
 
         s.updateSequencer.addRegister(s.MAR)
         s.updateSequencer.addRegister(s.MDR)

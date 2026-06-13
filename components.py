@@ -88,8 +88,10 @@ class Line(Component): # A bus that only takes a section of the input bits
         s.outBits.copyBitSection(caller.outBits, s.offset)
         #enqueue updates for dependents
         updateList : list[UpdateEntry] = []
+        currentOutBits = BitData(s.outBits.length)
+        currentOutBits.copyBits(s.outBits)
         for dependent in s.dependents:
-            updateList.append(UpdateEntry(dependent, s, currentTime, None))
+            updateList.append(UpdateEntry(dependent, s, currentTime, currentOutBits))
         return updateList
 
 class RWRegister(Component): #Read & write register
@@ -577,13 +579,15 @@ class Memory(Component):
 
         match caller.label:
             case "Memory control line":
-                s.write = caller.outBits.bits[0]
-                s.read = caller.outBits.bits[1]
-                s.fetch = caller.outBits.bits[2]
+                s.write = entry.information.bits[0]
+                s.read = entry.information.bits[1]
+                s.fetch = entry.information.bits[2]
                 if(s.fetch):
                     print("fetching!")
                     s.MBROutBits.copyBitSection(s.memoryBits, s.byteAddress*8)
-                    updateList.append(UpdateEntry(s.MBR, s, currentTime, None))
+                    currentMBROutBits = BitData(s.MBROutBits.length)
+                    currentMBROutBits.copyBits(s.MBROutBits)
+                    updateList.append(UpdateEntry(s.MBR, s, currentTime, currentMBROutBits))
                 if(s.read):
                     print("reading!")
                     s.MDROutBits.copyBitSection(s.memoryBits, s.wordAddress*8)
@@ -610,8 +614,11 @@ class Memory(Component):
                 s.PCBits.copyBits(entry.information)
                 s.byteAddress = s.PCBits.toInteger()
                 s.MBROutBits.copyBitSection(s.memoryBits, s.byteAddress*8)
+                currentMBROutBits = BitData(s.MBROutBits.length)
+                currentMBROutBits.copyBits(s.MBROutBits)
                 if s.fetch:
-                    updateList.append(UpdateEntry(s.MBR, s, currentTime, None))
+                    print("fetching!")
+                    updateList.append(UpdateEntry(s.MBR, s, currentTime, currentMBROutBits))
                 else:
                     return []
                 pass
@@ -774,6 +781,7 @@ class PC(Component):
                 else:
                     return []
             case "Memory":
+                s.inBits.copyBits(entry.information)
                 pass
 
         #if here only update B bus if output is enabled

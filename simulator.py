@@ -30,8 +30,10 @@ def updateLabelsList(labels):
         for i in range(bits.length):
             lstr += str(bits.bits[i])
         bitsLabel.configure(text=lstr)
+
 registerLabels = []
 debugLabels = []
+memoryDebugLabels = []
 
 def tksleep(t):
     ms = int(t*1)
@@ -44,6 +46,7 @@ def update():
     computer.update()
     updateLabelsList(registerLabels)
     updateLabelsList(debugLabels)
+    updateLabelsList(memoryDebugLabels)
 
 def reset():
     computer.reset()
@@ -56,6 +59,7 @@ def nextCycle():
         computer.update()
         updateLabelsList(registerLabels)
         updateLabelsList(debugLabels)
+        updateLabelsList(memoryDebugLabels)
         HIntLabel.configure(text=str(computer.Memory.byteAddress) + " " + str(computer.Memory.wordAddress))
     return
     while runningConstantly:
@@ -126,16 +130,26 @@ debugLabels.append(createRegisterLabel(debugWindow, font, computer.Shifter, comp
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.ShifterControlLine, computer.ShifterControlLine.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.ALU, computer.ALU.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.ALUControlLine, computer.ALUControlLine.outBits, len(debugLabels)))
-debugLabels.append(createRegisterLabel(debugWindow, font, computer.Memory, computer.Memory.PCBits, len(debugLabels)))
-debugLabels.append(createRegisterLabel(debugWindow, font, computer.Memory, computer.Memory.MDRBits, len(debugLabels)))
-debugLabels.append(createRegisterLabel(debugWindow, font, computer.Memory, computer.Memory.MDROutBits, len(debugLabels)))
-debugLabels.append(createRegisterLabel(debugWindow, font, computer.MemoryControlLine, computer.MemoryControlLine.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Abus, computer.Abus.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Bbus, computer.Bbus.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Cbus, computer.Cbus.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Decoder, computer.Decoder.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.controlMemory, computer.controlMemory.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.controlMemory, computer.controlMemory.MPCBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.Memory, computer.Memory.PCBits, len(debugLabels)))
+
+memoryDebugWindow = tk.Toplevel( mainWindow )
+memoryDebugWindow.transient( mainWindow )
+memoryDebugWindow.title( "Memory Debug" )
+memoryDebugWindow.minsize(600, 300)
+memoryDebugWindow.geometry("800x500+800+500")
+ttk.Separator(memoryDebugWindow).grid(column=0, row=1)
+
+memoryDebugLabels.append(createRegisterLabel(memoryDebugWindow, font, computer.Memory, computer.Memory.PCBits, len(memoryDebugLabels)))
+memoryDebugLabels.append(createRegisterLabel(memoryDebugWindow, font, computer.Memory, computer.Memory.MDRBits, len(memoryDebugLabels)))
+memoryDebugLabels.append(createRegisterLabel(memoryDebugWindow, font, computer.Memory, computer.Memory.MDROutBits, len(memoryDebugLabels)))
+memoryDebugLabels.append(createRegisterLabel(memoryDebugWindow, font, computer.MemoryControlLine, computer.MemoryControlLine.outBits, len(memoryDebugLabels)))
+
 
 def closer( event ):
     mainWindow.destroy()
