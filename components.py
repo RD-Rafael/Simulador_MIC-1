@@ -340,7 +340,7 @@ class ORUnit(Component):
                 s.JMPCValue = caller.outBits.bits[0]
                 pass
             case "MBR":
-                s.MBRBits.copyBits(caller.inBits)
+                s.MBRBits.copyBits(entry.information)
                 pass
             case "Addr line":
                 s.nextAddrBits.copyBits(caller.outBits)
@@ -357,8 +357,10 @@ class ORUnit(Component):
 
         #enqueue updates for dependents
         updateList : list[UpdateEntry] = []
+        currentOutBits = BitData(s.outBits.length)
+        currentOutBits.copyBits(s.outBits)
         for dependent in s.dependents:
-            updateList.append(UpdateEntry(dependent, s, currentTime, None))
+            updateList.append(UpdateEntry(dependent, s, currentTime, currentOutBits))
         return updateList
 
 class MPC(Component):
@@ -489,9 +491,11 @@ class MBR(Component):
                 else:
                     s.output2 = True
             case "Memory":
-                s.inBits.copyBits(caller.MBROutBits)
-                updateList.append(UpdateEntry(s.ORUnit, s, currentTime + caller.updateDelay, None))
-            
+                s.inBits.copyBits(entry.information)
+
+        currentInBits = BitData(s.inBits.length)
+        currentInBits.copyBits(s.inBits)
+        updateList.append(UpdateEntry(s.ORUnit, s, currentTime, currentInBits))
         if(not (s.output1 or s.output2)):
             s.outBits.clear()
             return updateList
@@ -506,8 +510,10 @@ class MBR(Component):
                 s.outBits.bits[i+24] = s.inBits.bits[i]
             pass
 
+        currentInBits = BitData(s.inBits.length)
+        currentInBits.copyBits(s.inBits)
         for dependent in s.dependents:
-            updateList.append(UpdateEntry(dependent, s, currentTime, None))
+            updateList.append(UpdateEntry(dependent, s, currentTime, currentInBits))
         return updateList
 
 class H(Component): #H register
@@ -592,7 +598,9 @@ class Memory(Component):
                     print("reading!")
                     s.MDROutBits.copyBitSection(s.memoryBits, s.wordAddress*8)
                     s.MDRBits.copyBitSection(s.memoryBits, s.wordAddress*8)
-                    updateList.append(UpdateEntry(s.MDR, s, currentTime, None))
+                    currentMDROutBits = BitData(s.MDROutBits.length)
+                    currentMDROutBits.copyBits(s.MDROutBits)
+                    updateList.append(UpdateEntry(s.MDR, s, currentTime, currentMDROutBits))
                 if(s.write):
                     print("writing!")
                     print(s.MDRBits.bits)
@@ -603,7 +611,7 @@ class Memory(Component):
                 #s.MARBits.copyBits(caller.outBits)
                 s.MARBits.bits[0] = 0
                 s.MARBits.bits[1] = 0
-                s.wordAddress = caller.inBits.toInteger()*4
+                s.wordAddress = entry.information.toInteger()*4
                 return []
                 pass
             case "MDR":
@@ -680,7 +688,7 @@ class MAR(Component):
         #enqueue updates for dependents
         updateList : list[UpdateEntry] = []
         for dependent in s.dependents:
-            updateList.append(UpdateEntry(dependent, s, currentTime, None))
+            updateList.append(UpdateEntry(dependent, s, currentTime, s.inBits))
         return updateList
 
 class MDR(Component):
@@ -724,22 +732,25 @@ class MDR(Component):
                     return []
             case "Memory":
                 memoryUpdated = True
-                s.inBits.copyBits(caller.MDROutBits)
+                s.inBits.copyBits(entry.information)
                 pass
+
+        currentInBits = BitData(s.inBits.length)
+        currentInBits.copyBits(s.inBits)
 
         if (not s.enableOutput):
             if(not memoryUpdated):
-                return [UpdateEntry(s.Memory, s, currentTime, None)]
+                return [UpdateEntry(s.Memory, s, currentTime, currentInBits)]
             else: 
                 return []
 
         print("Updating bus B because of: ",caller.label)
         updateList : list[UpdateEntry] = []
         if (not memoryUpdated):
-            updateList.append(UpdateEntry(s.Memory, s, currentTime + s.Memory.updateDelay, None))
+            updateList.append(UpdateEntry(s.Memory, s, currentTime, currentInBits))
 
         for dependent in s.dependents:
-            updateList.append(UpdateEntry(dependent, s, currentTime, None))
+            updateList.append(UpdateEntry(dependent, s, currentTime, currentInBits))
         return updateList
 
 class PC(Component):

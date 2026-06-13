@@ -111,3 +111,6 @@ PC = MDR;rd;fetch
 MAR = SP
 LV = MDR
 MDR = TOS;wr;goto Main1
+
+Z = H;if (Z) goto iload1;else goto wide_iload1
+Z = H;if (Z) goto istore1;else goto wide_istore1

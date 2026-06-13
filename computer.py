@@ -155,7 +155,7 @@ class Computer:
         s.ZFF.addDependent(s.HighBit)
         s.HighBit.addDependent(s.MPC)
 
-        s.MBR.addDependent(s.ORUnit)
+        #s.MBR.addDependent(s.ORUnit)
         s.MBR.addDependent(s.Bbus)
         s.MPC.addDependent(s.MPCBus)
         s.MPCBus.addDependent(s.controlMemory)

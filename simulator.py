@@ -7,7 +7,7 @@ from time import sleep
 
 computer : Computer = Computer()
 computer.Memory.loadProgram("macroprogram.txt")
-computer.updateSequencer.pendingUpdates[0] = [UpdateEntry(computer.MBR, computer.Memory, 0, None)]
+computer.updateSequencer.pendingUpdates[0] = [UpdateEntry(computer.MBR, computer.Memory, 0, computer.Memory.MBROutBits)]
 
 mainWindow = tk.Tk()
 font = ("Times New Roman", 20)

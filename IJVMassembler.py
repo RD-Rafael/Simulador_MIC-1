@@ -1,5 +1,20 @@
 from computer import BitData
 
+instructionToOpcode : dict[str, int]
+instructionToOpcode["NOP"] = 6
+instructionToOpcode["IADD"] = 7
+instructionToOpcode["ISUB"] = 10
+instructionToOpcode["IAND"] = 13
+instructionToOpcode["IOR"] = 16
+instructionToOpcode["DUP"] = 19
+instructionToOpcode["POP"] = 21 
+instructionToOpcode["SWAP"] = 24
+instructionToOpcode["BIPUSH"] = 30
+instructionToOpcode["ILOAD"] = 4
+instructionToOpcode["ISTORE"] = 5
+instructionToOpcode["WIDE"] = 42
+
+
 with open("ijvmcodeinput.txt") as f:
     f.readline()
 
