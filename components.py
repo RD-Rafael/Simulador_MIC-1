@@ -1,3 +1,4 @@
+import queue
 def xor(A: int, B : int):
     return not ( (A and B) or (not ((B) or (A))) )
 
@@ -117,6 +118,7 @@ class RWRegister(Component): #Read & write register
                 if caller.outBits.bits[0] == 0:
                     s.enableOutput = False
                     s.outBits.clear()
+                    return []
                 else:
                     s.enableOutput = True
                     s.outBits.copyBits(s.inBits)
@@ -131,6 +133,8 @@ class RWRegister(Component): #Read & write register
                         return []
                 else:
                     return []
+            case __:
+                return []
                 
         if(not s.enableOutput):
             return []
@@ -491,7 +495,7 @@ class MBR(Component):
                 else:
                     s.output2 = True
             case "Memory":
-                s.inBits.copyBits(entry.information)
+                pass
 
         currentInBits = BitData(s.inBits.length)
         currentInBits.copyBits(s.inBits)
@@ -556,89 +560,72 @@ class H(Component): #H register
 
 class Memory(Component):
     def __init__(s, updateDelay: int, mbr : MBR, mdr : MDR):
+        #updateDelay for memory is how many full cycles, not just timesteps
         super().__init__(updateDelay, "Memory")
-        s.MBR = mbr
+        s.memoryBits = BitData((3000)*32)
+        s.fetchQueue = [[]*s.updateDelay]
+        s.readQueue = [[]*s.updateDelay]
+        s.writeQueue = [[]*s.updateDelay]
         s.MDR = mdr
-
-        s.memoryBits = BitData((300000)*32)
-        for i in range((2048)*32):
-            s.memoryBits.bits[i] = 0
-        #tamanhos provisórios
-        s.wordAddress = 0
-        s.byteAddress = 0
-
-        s.MARBits = BitData(32)
-        s.MDRBits = BitData(32)
-        s.PCBits = BitData(32)
-
+        s.MBR = mbr
         s.MBROutBits = BitData(8)
-        s.MDROutBits = BitData(32)
-
-        s.write = False
-        s.read = False
-        s.fetch = False
 
     def update(s, currentTime : int, entry : UpdateEntry) -> list[UpdateEntry]:
         caller = entry.caller
-        #update stats
         updateList : list[UpdateEntry] = []
-
+        
         match caller.label:
-            case "Memory control line":
-                s.write = entry.information.bits[0]
-                s.read = entry.information.bits[1]
-                s.fetch = entry.information.bits[2]
-                if(s.fetch):
-                    print("fetching!")
-                    s.MBROutBits.copyBitSection(s.memoryBits, s.byteAddress*8)
-                    currentMBROutBits = BitData(s.MBROutBits.length)
-                    currentMBROutBits.copyBits(s.MBROutBits)
-                    updateList.append(UpdateEntry(s.MBR, s, currentTime, currentMBROutBits))
-                if(s.read):
-                    print("reading!")
-                    s.MDROutBits.copyBitSection(s.memoryBits, s.wordAddress*8)
-                    s.MDRBits.copyBitSection(s.memoryBits, s.wordAddress*8)
-                    currentMDROutBits = BitData(s.MDROutBits.length)
-                    currentMDROutBits.copyBits(s.MDROutBits)
-                    updateList.append(UpdateEntry(s.MDR, s, currentTime, currentMDROutBits))
-                if(s.write):
-                    print("writing!")
-                    print(s.MDRBits.bits)
-                    for i in range(s.MDRBits.length):
-                        s.memoryBits.bits[s.wordAddress*8 + i] = s.MDRBits.bits[i]
-                pass
-            case "MAR":
-                #s.MARBits.copyBits(caller.outBits)
-                s.MARBits.bits[0] = 0
-                s.MARBits.bits[1] = 0
-                s.wordAddress = entry.information.toInteger()*4
-                return []
-                pass
-            case "MDR":
-                s.MDRBits.copyBits(caller.inBits)
-                return []
-                pass
-            case "PC":
-                s.PCBits.copyBits(entry.information)
-                s.byteAddress = s.PCBits.toInteger()
-                s.MBROutBits.copyBitSection(s.memoryBits, s.byteAddress*8)
-                currentMBROutBits = BitData(s.MBROutBits.length)
-                currentMBROutBits.copyBits(s.MBROutBits)
-                if False and s.fetch:
-                    print("fetching!")
-                    updateList.append(UpdateEntry(s.MBR, s, currentTime, currentMBROutBits))
-                else:
-                    return []
-                pass
             case "Clock":
-                pass
-            
+                #if operations not queued before clock update, then assume there was no operation
+                if(len(s.fetchQueue) < s.updateDelay):
+                    s.fetchQueue.append([])
+                if(len(s.readQueue) < s.updateDelay):
+                    s.readQueue.append([])
+                if(len(s.writeQueue) < s.updateDelay):
+                    s.writeQueue.append([])
+                
+                print(s.readQueue)
+                print(s.fetchQueue)
+                print(s.writeQueue)
+
+                fetchOp = s.fetchQueue[0]
+                readOp = s.readQueue[0]
+                writeOp = s.writeQueue[0]
+                s.fetchQueue.pop(0)
+                s.readQueue.pop(0)
+                s.writeQueue.pop(0)
+                if(len(fetchOp)>0):
+                    byteAddr = fetchOp[0]
+                    s.MBR.inBits.copyBitSection(s.memoryBits, byteAddr*8)
+                    #s.MBR.outBits.copyBitSection(s.memoryBits, byteAddr*8)
+                if(len(readOp)>0):
+                    wordAddr = readOp[0]*4
+                    s.MDR.inBits.copyBitSection(s.memoryBits, wordAddr*8)
+                    s.MDR.outBits.copyBitSection(s.memoryBits, wordAddr*8)
+                    #s.MDR.update(currentTime, UpdateEntry(s.MDR, s, currentTime, None))
+                if(len(writeOp)>0):
+                    bitData = writeOp[0]
+                    wordAddr = writeOp[1]*4
+                    for i in range(bitData.length):
+                        s.memoryBits.bits[wordAddr*8 + i] = bitData.bits[i]
+                
+
         return updateList
+    
+    def queueFetch(s, byteAddr):
+        s.fetchQueue.append([byteAddr])
+
+    def queueRead(s, wordAddr):
+        s.readQueue.append([wordAddr])
+
+    def queueWrite(s, bitData, wordAddr):
+        s.writeQueue.append([bitData, wordAddr])
+
     def loadProgram(s, fileName: str):
         bitIdx = 0
         with open(fileName) as f:
             for line in f:
-                print(line)
+                #print(line)
                 for char in line:
                     if(char == '\n'):
                         continue
@@ -646,7 +633,11 @@ class Memory(Component):
                     bitIdx+=1
 
         #Só atualizando direto aqui porque é o início do programa
-        s.MBROutBits.copyBitSection(s.memoryBits, s.byteAddress*8)
+        byteAddr = 0
+        s.MBR.inBits.copyBitSection(s.memoryBits, byteAddr*8)
+        s.MBR.outBits.copyBitSection(s.memoryBits, byteAddr*8)
+        
+        s.MBR.update(0, UpdateEntry(s.MBR, s, 0, None))
         with open("memoryDump.txt", "w") as f:
             for i in range(s.memoryBits.length):
                 if(i%32 == 0):
@@ -742,9 +733,6 @@ class MDR(Component):
                 else:
                     return []
             case "Memory":
-                memoryUpdated = True
-                s.inBits.copyBits(entry.information)
-                s.outBits.copyBits(entry.information)
                 pass
 
         currentInBits = BitData(s.inBits.length)
@@ -817,5 +805,5 @@ class PC(Component):
             currentBits = BitData(s.inBits.length)
             currentBits.copyBits(s.inBits)
             updateList.append(UpdateEntry(dependent, s, currentTime, currentBits))
-            print(currentBits.bits)
+            #print(currentBits.bits)
         return updateList
