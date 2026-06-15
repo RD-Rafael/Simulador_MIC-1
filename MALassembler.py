@@ -279,7 +279,7 @@ with open("malcodeinput.txt") as f:
 for key in labelInstructionId:
     print(key, instructionIdAddress[labelInstructionId[key]])
 
-with open("malcodeoutput.txt", mode="w") as f:
+with open("microcode.txt", mode="w") as f:
     for bitData in program:
         s = ""
         for i in range(bitData.length):

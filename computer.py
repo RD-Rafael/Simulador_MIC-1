@@ -10,9 +10,10 @@ class UpdateSequencer:
     def __init__(s, controlMemory : ControlMemory, memory : Memory, mdr, pc, mbr, mar):
         s.controlMemory = controlMemory
         s.memory = memory 
-        s.controlMemory.loadMicrocode("malcodeoutput.txt")
+        s.controlMemory.loadMicrocode("microcode.txt")
         s.registers = []
         s.clockComponent = Component(1, "Clock")
+        s.outedThisCycle = False
         s.needToRead = True
         s.needToWrite = True
         s.needToFetch = False
@@ -28,6 +29,7 @@ class UpdateSequencer:
     def Update(s):
         currTime : int = s.clock.getTime()
         if(currTime == 0): #descending signal
+            s.outedThisCycle = False
             s.needToFetch = False
             s.needToRead = False
             s.needToWrite = False
@@ -43,6 +45,7 @@ class UpdateSequencer:
             s.pendingUpdates[currTime] = []
             for register in s.registers:
                 s.pendingUpdates[currTime].append(UpdateEntry(register, s.clockComponent, currTime, None))
+
                 
         if(s.pendingUpdates.get(currTime) == None):
             s.pendingUpdates[currTime] = []
@@ -60,11 +63,11 @@ class UpdateSequencer:
 
 
 
-
-        res =[]
-        for update in updatesForNow:
-            res.append([update.caller.label, update.component.label])
-        print(res)
+        if(debug):
+            res =[]
+            for update in updatesForNow:
+                res.append([update.caller.label, update.component.label])
+            print(res)
 
         for entry in updatesForNow:
             newUpdates : list[UpdateEntry] = entry.component.update(currTime, entry)
@@ -93,6 +96,7 @@ class UpdateSequencer:
             if(s.controlMemory.outBits.bits[31]):
                 s.needToFetch = True
 
+
         if(currTime == s.clock.clockInterval): #ascending pulse
             if(s.needToRead):
                 s.memory.queueRead(s.mar.inBits.toInteger())
@@ -107,6 +111,7 @@ class UpdateSequencer:
             entry = UpdateEntry(s.memory, s.clockComponent, currTime, None)
             s.memory.update(currTime, entry)
 
+
         s.pendingUpdates[currTime].clear()
 
         s.clock.timeStep()
@@ -119,8 +124,8 @@ class Computer:
         s.Shifter = Shifter(5)
         s.NLine = Line(1, "N line", 1, 0)
         s.ZLine = Line(1, "Z line", 1, 0)
-        s.NFF = FlipFlop(1, "NFF")
-        s.ZFF = FlipFlop(1, "ZFF")
+        s.NFF = FlipFlop(1, "NFF", s.ALU)
+        s.ZFF = FlipFlop(1, "ZFF", s.ALU)
         s.HighBit = HighBit(1)
         
         s.MIR = MIR(2)
@@ -179,6 +184,8 @@ class Computer:
 
         s.controlMemory.addDependent(s.MIR)
         s.ALU.addDependent(s.Shifter)
+        s.ALU.addDependent(s.NLine)
+        s.ALU.addDependent(s.ZLine)
         s.Shifter.addDependent(s.Cbus)
         s.NLine.addDependent(s.NFF)
         s.ZLine.addDependent(s.ZFF)
@@ -186,7 +193,6 @@ class Computer:
         s.ZFF.addDependent(s.HighBit)
         s.HighBit.addDependent(s.MPC)
 
-        #s.MBR.addDependent(s.ORUnit)
         s.MBR.addDependent(s.Bbus)
         s.MPC.addDependent(s.MPCBus)
         s.MPCBus.addDependent(s.controlMemory)
@@ -289,6 +295,8 @@ class Computer:
         s.updateSequencer.addRegister(s.TOS)
         s.updateSequencer.addRegister(s.OPC)
         s.updateSequencer.addRegister(s.H)
+        s.updateSequencer.addRegister(s.NFF)
+        s.updateSequencer.addRegister(s.ZFF)
         s.reset()
 
     def reset(s):
@@ -349,17 +357,16 @@ class Computer:
 
 
     def update(s):
+        currentSPBits = BitData(s.SP.inBits.length)
+        currentSPBits.copyBits(s.SP.inBits)
         s.updateSequencer.Update()
+        if(s.controlMemory.gotOutOp == True):
+            word : BitData = BitData(32)
+            wordAddress = currentSPBits.toInteger()*4
+            word.copyBitSection(s.Memory.memoryBits, wordAddress*8)
+            print(word.toInteger())
+            s.controlMemory.gotOutOp = False
 
-        """
-        res = list(map(s.updateSequencer.pendingUpdates.get, s.updateSequencer.pendingUpdates.keys()))
-        res1 = []
-        for ist in res:
-            res1.append([])
-            for elem in ist:
-                res1[len(res1)-1].append(elem.component.label)
-        print(res1)
-        """
     def loadProgram(s, fileName):
         s.Memory.loadProgram(fileName)
         with open(fileName) as f:
@@ -371,9 +378,12 @@ class Computer:
                 s.CPP.outBits.bits[i] = int(CPP[i])
                 s.LV.inBits.bits[i] = int(LV[i])
                 s.LV.outBits.bits[i] = int(LV[i])
-                s.SP.inBits.bits[i] = int(LV[i])
-                s.SP.outBits.bits[i] = int(LV[i])
-                
+
+            #offset de 20 palavras entre sp e lv
+            lv_integer_value = s.LV.inBits.toInteger()
+            safe_sp_value = lv_integer_value + 20
+            s.SP.inBits._setBitsFromInt(safe_sp_value)
+            s.SP.outBits._setBitsFromInt(safe_sp_value)
 
 
 

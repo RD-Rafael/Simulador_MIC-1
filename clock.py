@@ -1,18 +1,19 @@
+from components import debug
 
 class Clock:
-    pulseWidth : int = 14
-    clockInterval : int = 38 #full Cycle = pulseWidth + clockInterval
+    pulseWidth : int = 24
+    clockInterval : int = 52 #full Cycle = pulseWidth + clockInterval
     currentTime : int = 0 #0: descending Pulse
 
     def __init__(s):
         pass
 
     def getTime(s) -> int:
-        if(s.currentTime == 0):
+        if(debug and s.currentTime == 0):
             print("=======!!")
             print("descendingPulse")
             print("=======!!")
-        elif(s.currentTime == s.clockInterval):
+        elif(debug and s.currentTime == s.clockInterval):
             print("=======!!")
             print("ascendingPulse")
             print("=======!!")

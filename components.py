@@ -1,4 +1,6 @@
-import queue
+debug = False
+
+
 def xor(A: int, B : int):
     return not ( (A and B) or (not ((B) or (A))) )
 
@@ -146,19 +148,22 @@ class RWRegister(Component): #Read & write register
         return updateList
 
 class FlipFlop(Component):
-    def __init__(s, updateDelay: int, label: str):
+    def __init__(s, updateDelay: int, label: str, ALU : ALU):
         super().__init__(updateDelay, label)
         s.outBits = BitData(1)
         s.inBits = BitData(1)
+        s.ALU = ALU
 
     def update(s, currentTime : int, entry: UpdateEntry) -> list[UpdateEntry]:
         caller = entry.caller
         #update stats
         if(caller.label == "Clock"):
-            s.outBits.copyBits(s.inBits)
+            if(s.label == "NFF"):
+                s.outBits.bits[0] = 1 if s.ALU.N else 0
+            else:
+                s.outBits.bits[0] = 1 if s.ALU.Z else 0
         else:
-            s.inBits.copyBits(caller.outBits)
-            return []
+            return
 
         #enqueue updates for dependents
         updateList : list[UpdateEntry] = []
@@ -196,7 +201,9 @@ class HighBit(Component):
         #enqueue updates for dependents
         updateList : list[UpdateEntry] = []
         for dependent in s.dependents:
-            updateList.append(UpdateEntry(dependent, s, currentTime, None))
+            currOutBit = BitData(1)
+            currOutBit.bits[0] = F
+            updateList.append(UpdateEntry(dependent, s, currentTime, currOutBit))
         return updateList
 
 class ALU(Component):
@@ -213,6 +220,8 @@ class ALU(Component):
         s.ENB = 0
         s.INVA = 0
         s.INC = 0
+        s.N = False
+        s.Z = False
 
     def update(s, currentTime : int, entry : UpdateEntry) -> list[UpdateEntry]:
         caller = entry.caller
@@ -274,6 +283,18 @@ class ALU(Component):
                 bitA = s.inA.bits[idx]
                 bitB = s.inB.bits[idx]
                 s.outBits.bits[idx] = 1 if bitA and bitB else 0
+
+
+        if(s.outBits.bits[0] == 1):
+            s.N = True
+            s.Z = False
+        else:
+            s.N = False
+            s.Z = True
+            for i in range(s.outBits.length):
+                if(s.outBits.bits[i] != 0):
+                    s.Z = False
+
 
 
 
@@ -383,10 +404,10 @@ class MPC(Component):
                     s.addrBits.bits[i] = caller.outBits.bits[i]
                 pass
             case "HighBit":
-                s.HighBit.bits[0] = caller.outBits.bits[0]
+                s.HighBit.bits[0] = entry.information.bits[0]
                 pass
 
-        s.outBits.bits[0] = 1 if s.HighBit.bits[0] or s.addrBits.bits[0] else 0
+        s.outBits.bits[0] = 1 if (s.HighBit.bits[0] == 1 or s.addrBits.bits[0] == 1) else 0
         for i in range(8):
             s.outBits.bits[i+1] = s.addrBits.bits[i+1]
 
@@ -403,6 +424,8 @@ class ControlMemory(Component):
         s.MPCBits = BitData(9)
         s.outBits = BitData(36)
         s.currentAddress = BitData(9)
+
+        s.gotOutOp = False
     
     def loadMicrocode(s, codeFileName : str):
         with open(codeFileName) as f:
@@ -412,14 +435,22 @@ class ControlMemory(Component):
                     s.bits.bits[i*36 + j] = int(line[j])
 
     def update(s, currentTime : int, entry : UpdateEntry) -> list[UpdateEntry]:
+        s.gotOutOp = False
         caller = entry.caller
         #update stats
         match caller.label:
             case "Clock":
+                outCheck = True
+                for i in range(8):
+                    if (s.MPCBits.bits[i+1] == 0):
+                        outCheck = False
+                if(outCheck):
+                    s.MPCBits.clear()
+                s.gotOutOp = outCheck
+
                 s.currentAddress.copyBits(s.MPCBits)
                 addressInteger : int = s.currentAddress.toInteger()*36
                 s.outBits.copyBitSection(s.bits, addressInteger)
-                #print(s.outBits.bits)
                 pass
             case "MPC bus":
                 s.MPCBits.copyBits(caller.outBits)
@@ -557,18 +588,28 @@ class H(Component): #H register
         for dependent in s.dependents:
             updateList.append(UpdateEntry(dependent, s, currentTime, None))
         return updateList
-
 class Memory(Component):
     def __init__(s, updateDelay: int, mbr : MBR, mdr : MDR):
-        #updateDelay for memory is how many full cycles, not just timesteps
         super().__init__(updateDelay, "Memory")
         s.memoryBits = BitData((3000)*32)
-        s.fetchQueue = [[]*s.updateDelay]
-        s.readQueue = [[]*s.updateDelay]
-        s.writeQueue = [[]*s.updateDelay]
+        
+        queue_size = s.updateDelay+1
+        s.fetchQueue = [None] * queue_size
+        s.readQueue = [None] * queue_size
+        s.writeQueue = [None] * queue_size
+        
         s.MDR = mdr
         s.MBR = mbr
         s.MBROutBits = BitData(8)
+
+    def queueFetch(s, byteAddr):
+        s.fetchQueue[-1] = byteAddr
+
+    def queueRead(s, wordAddr):
+        s.readQueue[-1] = wordAddr
+
+    def queueWrite(s, bitData, wordAddr):
+        s.writeQueue[-1] = (bitData, wordAddr)
 
     def update(s, currentTime : int, entry : UpdateEntry) -> list[UpdateEntry]:
         caller = entry.caller
@@ -576,56 +617,38 @@ class Memory(Component):
         
         match caller.label:
             case "Clock":
-                #if operations not queued before clock update, then assume there was no operation
-                if(len(s.fetchQueue) < s.updateDelay):
-                    s.fetchQueue.append([])
-                if(len(s.readQueue) < s.updateDelay):
-                    s.readQueue.append([])
-                if(len(s.writeQueue) < s.updateDelay):
-                    s.writeQueue.append([])
-                
-                print(s.readQueue)
-                print(s.fetchQueue)
-                print(s.writeQueue)
+                #pop the oldest operation at the front of the queue
+                fetchOp = s.fetchQueue.pop(0)
+                readOp = s.readQueue.pop(0)
+                writeOp = s.writeQueue.pop(0)
 
-                fetchOp = s.fetchQueue[0]
-                readOp = s.readQueue[0]
-                writeOp = s.writeQueue[0]
-                s.fetchQueue.pop(0)
-                s.readQueue.pop(0)
-                s.writeQueue.pop(0)
-                if(len(fetchOp)>0):
-                    byteAddr = fetchOp[0]
+                #shift a None to keep size constant
+                s.fetchQueue.append(None)
+                s.readQueue.append(None)
+                s.writeQueue.append(None)
+
+                #execute the operations that just finished their delay
+                if fetchOp is not None:
+                    byteAddr = fetchOp
                     s.MBR.inBits.copyBitSection(s.memoryBits, byteAddr*8)
-                    #s.MBR.outBits.copyBitSection(s.memoryBits, byteAddr*8)
-                if(len(readOp)>0):
-                    wordAddr = readOp[0]*4
+                    s.MBR.outBits.copyBitSection(s.memoryBits, byteAddr*8)
+
+                if readOp is not None:
+                    wordAddr = readOp * 4
                     s.MDR.inBits.copyBitSection(s.memoryBits, wordAddr*8)
                     s.MDR.outBits.copyBitSection(s.memoryBits, wordAddr*8)
-                    #s.MDR.update(currentTime, UpdateEntry(s.MDR, s, currentTime, None))
-                if(len(writeOp)>0):
-                    bitData = writeOp[0]
-                    wordAddr = writeOp[1]*4
+
+                if writeOp is not None:
+                    bitData, wordAddr = writeOp
+                    wordAddr = wordAddr * 4
                     for i in range(bitData.length):
                         s.memoryBits.bits[wordAddr*8 + i] = bitData.bits[i]
-                
-
         return updateList
-    
-    def queueFetch(s, byteAddr):
-        s.fetchQueue.append([byteAddr])
-
-    def queueRead(s, wordAddr):
-        s.readQueue.append([wordAddr])
-
-    def queueWrite(s, bitData, wordAddr):
-        s.writeQueue.append([bitData, wordAddr])
 
     def loadProgram(s, fileName: str):
         bitIdx = 0
         with open(fileName) as f:
             for line in f:
-                #print(line)
                 for char in line:
                     if(char == '\n'):
                         continue
@@ -744,7 +767,6 @@ class MDR(Component):
             else: 
                 return []
 
-        print("Updating bus B because of: ",caller.label)
         updateList : list[UpdateEntry] = []
         if (not memoryUpdated):
             updateList.append(UpdateEntry(s.Memory, s, currentTime, currentInBits))
@@ -805,5 +827,4 @@ class PC(Component):
             currentBits = BitData(s.inBits.length)
             currentBits.copyBits(s.inBits)
             updateList.append(UpdateEntry(dependent, s, currentTime, currentBits))
-            #print(currentBits.bits)
         return updateList
