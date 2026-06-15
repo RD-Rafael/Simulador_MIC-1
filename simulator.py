@@ -55,6 +55,12 @@ def reset():
 def nextCycle():
     root = tk._get_default_root('Running')
     runningConstantly = tk.BooleanVar(root)
+    while(False and runningConstantly):
+        tksleep(1)
+        computer.update()
+        updateLabelsList(registerLabels)
+        updateLabelsList(debugLabels)
+        updateLabelsList(memoryDebugLabels)
     for i in range(52):
         computer.update()
         updateLabelsList(registerLabels)
@@ -129,6 +135,10 @@ debugLabels.append(createRegisterLabel(debugWindow, font, computer.Cbus, compute
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Decoder, computer.Decoder.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.controlMemory, computer.controlMemory.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.controlMemory, computer.controlMemory.MPCBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.NFF, computer.NFF.outBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.ZFF, computer.ZFF.outBits, len(debugLabels)))
+debugLabels.append(createRegisterLabel(debugWindow, font, computer.HighBit, computer.HighBit.outBits, len(debugLabels)))
+
 
 memoryDebugWindow = tk.Toplevel( mainWindow )
 memoryDebugWindow.transient( mainWindow )

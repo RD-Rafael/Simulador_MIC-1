@@ -1,29 +1,25 @@
-.constant 
-OBJREF 0x10
+.constant
 ONE 0x01
+TWO 0x02
 .end-constant
 
 .main
-	LDC_W OBJREF
-	BIPUSH 0x10
-	INVOKEVIRTUAL FIBONACCI
-	POP
-.end-main
-
-
-.method FIBONACCI (count)
-
 .var
-aux
+a
+b
+c
+n
+count
 .end-var
-	ILOAD count
-doit: 	LDC_W ONE
-	IADD
-	ISTORE aux
-	GOTO doit
-	GOTO return
-lt:	BIPUSH 0x59	
-return:	ILOAD count 	
-	IRETURN		
-			
-.end-method
+
+BIPUSH 0x02
+BIPUSH 0x02
+IF_ICMPEQ la
+LDC_W ONE
+OUT
+lb: GOTO lb
+la: LDC_W TWO
+OUT
+lc: GOTO lc
+
+.end-main

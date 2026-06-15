@@ -44,10 +44,11 @@ instructionToOpcode["LDC_W"] = 50
 instructionToOpcode["IINC"] = 54
 instructionToOpcode["GOTO"] = 60
 instructionToOpcode["IFLT"] = 66
-instructionToOpcode["IFEQ"] = 70
-instructionToOpcode["IF_ICMPEQ"] = 74
-instructionToOpcode["INVOKEVIRTUAL"] = 82
-instructionToOpcode["IRETURN"] = 104
+instructionToOpcode["IFEQ"] = 71
+instructionToOpcode["IF_ICMPEQ"] = 76
+instructionToOpcode["INVOKEVIRTUAL"] = 85
+instructionToOpcode["IRETURN"] = 107
+instructionToOpcode["OUT"] = 255 
 
 
 constantAddress : dict[str, int] = dict()
@@ -61,14 +62,28 @@ methodLocalVariables : dict[str, dict[str, int]] = dict()
 lines = []
 def writeIntByte(outF, value : int, byteCount : int):
     lineToWrite = ""
+    isNeg = False
+    if(value < 0):
+        isNeg = True
+        value = -(value+1)
+
+    bits = []
     for i in range(8*byteCount):
-        lineToWrite += ('1' if bool(value & (1 << 8*byteCount - i - 1)) else '0')
+        bits.append(1 if bool(value & (1 << 8*byteCount - i - 1)) else 0)
+    for i in range(8*byteCount):
+        if(isNeg):
+            bits[i] = 0 if bits[i] == 1 else 1
+        lineToWrite += str(bits[i])
+        
+        
     lineToWrite += "\n"
     lines.append(lineToWrite)
     #outF.write(lineToWrite)
     return byteCount
 
-def writeInstruction(currentMethod : str, instructionStr : str, outF):
+def writeInstruction(currentMethod : str, instructionStr : str, outF, currentMethodByte : int):
+    if(instructionStr.strip() == ''):
+        return
     bitsWritten = 0
 
     instructionParts = instructionStr.strip().split()
@@ -94,11 +109,12 @@ def writeInstruction(currentMethod : str, instructionStr : str, outF):
         opcode == "ISUB" or
         opcode == "NOP" or
         opcode == "POP" or
-        opcode == "SWAP"
+        opcode == "SWAP"or
+        opcode == "OUT"
     ):
         return bitsWritten
     
-    #If instruction requires label than write 2byte label address
+    #If instruction requires label than write 2byte offset to label address
     if(
         opcode == "GOTO" or
         opcode == "IFEQ" or
@@ -106,7 +122,10 @@ def writeInstruction(currentMethod : str, instructionStr : str, outF):
         opcode == "IF_ICMPEQ"
     ):
         label = instructionParts[i]
-        bitsWritten += writeIntByte(outF, labelAddress[label], 2)
+
+        offset = labelAddress[label] - currentMethodByte
+
+        bitsWritten += writeIntByte(outF, offset, 2)
         return bitsWritten
     
     #if instruction requires variable names
@@ -116,9 +135,11 @@ def writeInstruction(currentMethod : str, instructionStr : str, outF):
         opcode == "ISTORE"
     ):
         variableName = instructionParts[i]
+        if methodLocalVariables.get(currentMethod) == None:
+            methodLocalVariables[currentMethod] = dict()
         bitsWritten += writeIntByte(outF, methodLocalVariables[currentMethod][variableName], 2 if using2ByteAddr else 1)
         if(opcode == "IINC"):
-            bitsWritten += writeIntByte(outF, hexToInt(instructionParts[i+2]), 1)
+            bitsWritten += writeIntByte(outF, hexToInt(instructionParts[i+1]), 1)
         return bitsWritten
     
     #if instruction requires constant name
@@ -168,7 +189,8 @@ def byteCountInLine(line : str):
         opcode == "ISUB" or
         opcode == "NOP" or
         opcode == "POP" or
-        opcode == "SWAP"
+        opcode == "SWAP" or
+        opcode == "OUT"
     ):
         return bitsWritten
     
@@ -388,7 +410,9 @@ with open("ijvmcodeoutput.txt", "w") as outF:
                     inVar = False
                     continue
                 if(inVar):
-                    varName = line.spliit(' ')[0].strip()
+                    varName = line.split(' ')[0].strip()
+                    if(methodLocalVariables.get("main") == None):
+                        methodLocalVariables["main"] = dict()
                     methodLocalVariables["main"][varName] = currentVariableIndex
                     currentVariableIndex +=1
         f.seek(0,0)
@@ -462,7 +486,7 @@ with open("ijvmcodeoutput.txt", "w") as outF:
                     continue
                 if(inVar):
                     continue
-                currentMethodByte += writeInstruction("main", line.split(':')[len(line.split(':'))-1].strip(), outF)
+                currentMethodByte += writeInstruction("main", line.split(':')[len(line.split(':'))-1].strip(), outF, currentMethodByte)
         f.seek(0,0)
 
         ##iterate through Methods
@@ -502,7 +526,7 @@ with open("ijvmcodeoutput.txt", "w") as outF:
                 if(inVar):
                     continue
 
-                currentMethodByte += writeInstruction(currentMethod, line.split(':')[len(line.split(':'))-1].strip(), outF)
+                currentMethodByte += writeInstruction(currentMethod, line.split(':')[len(line.split(':'))-1].strip(), outF, currentMethodByte)
         f.seek(0,0)
 
         padding_needed = (4 - (currentMethodByte % 4)) % 4
