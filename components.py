@@ -562,7 +562,7 @@ class Memory(Component):
 
         s.memoryBits = BitData((300000)*32)
         for i in range((2048)*32):
-            s.memoryBits.bits[i] = 1
+            s.memoryBits.bits[i] = 0
         #tamanhos provisórios
         s.wordAddress = 0
         s.byteAddress = 0
@@ -624,7 +624,7 @@ class Memory(Component):
                 s.MBROutBits.copyBitSection(s.memoryBits, s.byteAddress*8)
                 currentMBROutBits = BitData(s.MBROutBits.length)
                 currentMBROutBits.copyBits(s.MBROutBits)
-                if s.fetch:
+                if False and s.fetch:
                     print("fetching!")
                     updateList.append(UpdateEntry(s.MBR, s, currentTime, currentMBROutBits))
                 else:
@@ -647,6 +647,17 @@ class Memory(Component):
 
         #Só atualizando direto aqui porque é o início do programa
         s.MBROutBits.copyBitSection(s.memoryBits, s.byteAddress*8)
+        with open("memoryDump.txt", "w") as f:
+            for i in range(s.memoryBits.length):
+                if(i%32 == 0):
+                    f.write("\n")
+                elif(i%8==0):
+                    f.write("  ")
+                elif(i%4 == 0):
+                    f.write(" ")
+                
+                f.write(str(s.memoryBits.bits[i]))
+                
                         
 class MAR(Component):
     def __init__(s, updateDelay: int):
@@ -733,6 +744,7 @@ class MDR(Component):
             case "Memory":
                 memoryUpdated = True
                 s.inBits.copyBits(entry.information)
+                s.outBits.copyBits(entry.information)
                 pass
 
         currentInBits = BitData(s.inBits.length)

@@ -240,7 +240,7 @@ class Computer:
         s.H.addDependent(s.Abus)
 
 
-        #s.MAR.addDependent(s.Memory)
+        s.MAR.addDependent(s.Memory)
         s.PC.addDependent(s.Memory)
         #s.Memory.addDependent(s.MDR)
         #s.Memory.addDependent(s.MBR)
@@ -324,6 +324,18 @@ class Computer:
                 res1[len(res1)-1].append(elem.component.label)
         print(res1)
         """
+    def loadProgram(s, fileName):
+        s.Memory.loadProgram(fileName)
+        with open(fileName) as f:
+            lines = f.readlines()
+            CPP = lines[-2]
+            LV = lines[-1]
+            for i in range(32):
+                s.CPP.inBits.bits[i] = int(CPP[i])
+                s.CPP.outBits.bits[i] = int(CPP[i])
+                s.LV.inBits.bits[i] = int(LV[i])
+                s.LV.outBits.bits[i] = int(LV[i])
+                
 
 
 

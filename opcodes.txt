@@ -15,7 +15,7 @@ istore3 38
 wide1 42
 wide_iload1 260
 wide_istore1 261
-idc_w1 50
+ldc_w1 50
 iinc1 54
 goto1 60
 goto2 61

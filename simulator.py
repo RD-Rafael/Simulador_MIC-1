@@ -6,7 +6,7 @@ from tkinter import Image
 from time import sleep
 
 computer : Computer = Computer()
-computer.Memory.loadProgram("macroprogram.txt")
+computer.loadProgram("ijvmcodeoutput.txt")
 computer.updateSequencer.pendingUpdates[0] = [UpdateEntry(computer.MBR, computer.Memory, 0, computer.Memory.MBROutBits)]
 
 mainWindow = tk.Tk()
@@ -50,7 +50,7 @@ def update():
 
 def reset():
     computer.reset()
-    computer.Memory.loadProgram("macroprogram.txt")
+    computer.loadProgram("ijvmcodeoutput.txt")
 
 def nextCycle():
     root = tk._get_default_root('Running')
@@ -62,12 +62,6 @@ def nextCycle():
         updateLabelsList(memoryDebugLabels)
         HIntLabel.configure(text=str(computer.Memory.byteAddress) + " " + str(computer.Memory.wordAddress))
     return
-    while runningConstantly:
-        tksleep(50)
-        computer.update()
-        updateLabelsList(registerLabels)
-        updateLabelsList(debugLabels)
-        HIntLabel.configure(text=str(computer.H.inBits.toInteger()))
 
 def toggleRunningConstantly():
     root = tk._get_default_root('Running')
