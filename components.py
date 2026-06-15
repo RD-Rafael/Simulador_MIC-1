@@ -163,7 +163,7 @@ class FlipFlop(Component):
             else:
                 s.outBits.bits[0] = 1 if s.ALU.Z else 0
         else:
-            return
+            return []
 
         #enqueue updates for dependents
         updateList : list[UpdateEntry] = []

@@ -12,8 +12,8 @@ n
 count
 .end-var
 
-BIPUSH 0x02
-BIPUSH 0x02
+BIPUSH 0x00
+BIPUSH 0x00
 IF_ICMPEQ la
 LDC_W ONE
 OUT
