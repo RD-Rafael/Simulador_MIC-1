@@ -77,10 +77,10 @@ H = MDR;rd
 OPC = TOS
 TOS = MDR
 Z = OPC - H;if (Z) goto T;else goto F
-F: PC = PC + 1
+F: OPC = PC - 1;goto goto2
+T: PC = PC + 1
 PC = PC + 1;fetch
 goto Main1
-T: OPC = PC - 1;goto goto2
 invokevirtual1: PC = PC + 1;fetch
 H = MBRU << 8
 H = MBRU OR H

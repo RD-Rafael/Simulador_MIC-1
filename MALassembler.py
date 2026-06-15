@@ -16,16 +16,6 @@ for i in range(512):
 
 
 with open("malcodeinput.txt") as f:
-    """
-    currInstructionAddress : int = 0
-    instructionAddress : dict[int, int] = dict()
-    availableInstructionPairs : list[list[int,int]] = []
-    availableInstructionAddresses : list[int] = 512*[0]
-    for i in range(255):
-        availableInstructionPairs.append([i, i + 256])
-    for i in range(512):
-        availableInstructionAddresses.append(i)
-    """
     instructionIdLine : dict[int, int] = dict()
     instructions : list[str] = []
 
