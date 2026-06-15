@@ -7,12 +7,19 @@ class UpdateSequencer:
     clock : Clock = Clock()
     pendingUpdates : dict[int, list[UpdateEntry]] = dict()
 
-    def __init__(s, controlMemory : ControlMemory, memory : Memory):
+    def __init__(s, controlMemory : ControlMemory, memory : Memory, mdr, pc, mbr, mar):
         s.controlMemory = controlMemory
         s.memory = memory 
         s.controlMemory.loadMicrocode("malcodeoutput.txt")
         s.registers = []
         s.clockComponent = Component(1, "Clock")
+        s.needToRead = True
+        s.needToWrite = True
+        s.needToFetch = False
+        s.mdr = mdr
+        s.pc = pc
+        s.mbr = mbr
+        s.mar = mar
         pass
 
     def addRegister(s, register : Component):
@@ -21,18 +28,22 @@ class UpdateSequencer:
     def Update(s):
         currTime : int = s.clock.getTime()
         if(currTime == 0): #descending signal
-            #update control Memory
+            s.needToFetch = False
+            s.needToRead = False
+            s.needToWrite = False
             entry = UpdateEntry(s.controlMemory, s.clockComponent, s.controlMemory.updateDelay, None)
             if(s.pendingUpdates.get(entry.timeIdx) == None):
                 s.pendingUpdates[entry.timeIdx] = []
             s.pendingUpdates[entry.timeIdx].append(entry)
         
+
+        
         elif(currTime == s.clock.clockInterval): #ascending signal
-            #update Registers
+            #schedule update Registers
             s.pendingUpdates[currTime] = []
             for register in s.registers:
                 s.pendingUpdates[currTime].append(UpdateEntry(register, s.clockComponent, currTime, None))
-
+                
         if(s.pendingUpdates.get(currTime) == None):
             s.pendingUpdates[currTime] = []
 
@@ -74,6 +85,28 @@ class UpdateSequencer:
                 if(not foundDuplicate):
                     s.pendingUpdates[updateTimeModulo].append(UpdateEntry(newEntry.component, newEntry.caller, updateTime, newEntry.information))
 
+        if(currTime == s.controlMemory.updateDelay):
+            if(s.controlMemory.outBits.bits[29]):
+                s.needToWrite = True
+            if(s.controlMemory.outBits.bits[30]):
+                s.needToRead = True
+            if(s.controlMemory.outBits.bits[31]):
+                s.needToFetch = True
+
+        if(currTime == s.clock.clockInterval): #ascending pulse
+            if(s.needToRead):
+                s.memory.queueRead(s.mar.inBits.toInteger())
+            if(s.needToWrite):
+                bitData = BitData(s.mdr.inBits.length)
+                bitData.copyBits(s.mdr.inBits)
+                s.memory.queueWrite(bitData, s.mar.inBits.toInteger())
+            if(s.needToFetch):
+                s.memory.queueFetch(s.pc.inBits.toInteger())
+
+            #update Memory
+            entry = UpdateEntry(s.memory, s.clockComponent, currTime, None)
+            s.memory.update(currTime, entry)
+
         s.pendingUpdates[currTime].clear()
 
         s.clock.timeStep()
@@ -81,7 +114,6 @@ class UpdateSequencer:
 class Computer:
     def __init__(s):
         s.controlMemory = ControlMemory(6)
-        s.updateSequencer = UpdateSequencer(s.controlMemory, None)
 
         s.ALU = ALU(5)
         s.Shifter = Shifter(5)
@@ -99,10 +131,9 @@ class Computer:
         s.MDR = MDR(5, None)
         s.PC = PC(5)
         
-        s.Memory = Memory(90, s.MBR, s.MDR)
+        s.Memory = Memory(1, s.MBR, s.MDR)
         s.PC.Memory = s.Memory
         s.MDR.Memory = s.Memory
-        s.updateSequencer.memory = s.Memory
         #MIR lines
         s.AddrLine = Line(1, "Addr line", 9, 0)
         s.JMPCLine = Line(1, "JMPC line", 1, 9)
@@ -245,6 +276,9 @@ class Computer:
         #s.Memory.addDependent(s.MDR)
         #s.Memory.addDependent(s.MBR)
 
+        s.updateSequencer = UpdateSequencer(s.controlMemory, s.Memory, s.MDR,s.PC, s.MBR, s.MAR)
+        s.updateSequencer.memory = s.Memory
+
         s.updateSequencer.addRegister(s.MAR)
         s.updateSequencer.addRegister(s.MDR)
         s.updateSequencer.addRegister(s.PC)
@@ -313,8 +347,10 @@ class Computer:
 
 
 
+
     def update(s):
         s.updateSequencer.Update()
+
         """
         res = list(map(s.updateSequencer.pendingUpdates.get, s.updateSequencer.pendingUpdates.keys()))
         res1 = []
@@ -335,6 +371,8 @@ class Computer:
                 s.CPP.outBits.bits[i] = int(CPP[i])
                 s.LV.inBits.bits[i] = int(LV[i])
                 s.LV.outBits.bits[i] = int(LV[i])
+                s.SP.inBits.bits[i] = int(LV[i])
+                s.SP.outBits.bits[i] = int(LV[i])
                 
 
 

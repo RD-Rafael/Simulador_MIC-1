@@ -60,7 +60,6 @@ def nextCycle():
         updateLabelsList(registerLabels)
         updateLabelsList(debugLabels)
         updateLabelsList(memoryDebugLabels)
-        HIntLabel.configure(text=str(computer.Memory.byteAddress) + " " + str(computer.Memory.wordAddress))
     return
 
 def toggleRunningConstantly():
@@ -130,7 +129,6 @@ debugLabels.append(createRegisterLabel(debugWindow, font, computer.Cbus, compute
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.Decoder, computer.Decoder.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.controlMemory, computer.controlMemory.outBits, len(debugLabels)))
 debugLabels.append(createRegisterLabel(debugWindow, font, computer.controlMemory, computer.controlMemory.MPCBits, len(debugLabels)))
-debugLabels.append(createRegisterLabel(debugWindow, font, computer.Memory, computer.Memory.PCBits, len(debugLabels)))
 
 memoryDebugWindow = tk.Toplevel( mainWindow )
 memoryDebugWindow.transient( mainWindow )
@@ -139,9 +137,6 @@ memoryDebugWindow.minsize(600, 300)
 memoryDebugWindow.geometry("800x500+800+500")
 ttk.Separator(memoryDebugWindow).grid(column=0, row=1)
 
-memoryDebugLabels.append(createRegisterLabel(memoryDebugWindow, font, computer.Memory, computer.Memory.PCBits, len(memoryDebugLabels)))
-memoryDebugLabels.append(createRegisterLabel(memoryDebugWindow, font, computer.Memory, computer.Memory.MDRBits, len(memoryDebugLabels)))
-memoryDebugLabels.append(createRegisterLabel(memoryDebugWindow, font, computer.Memory, computer.Memory.MDROutBits, len(memoryDebugLabels)))
 memoryDebugLabels.append(createRegisterLabel(memoryDebugWindow, font, computer.MemoryControlLine, computer.MemoryControlLine.outBits, len(memoryDebugLabels)))
 
 
