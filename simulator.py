@@ -11,6 +11,7 @@ def runSimulator():
     computer.updateSequencer.pendingUpdates[0] = [UpdateEntry(computer.MBR, computer.Memory, 0, computer.Memory.MBROutBits)]
 
     mainWindow = tk.Tk()
+    runningConstantly = tk.BooleanVar(mainWindow, value=False)
     UserExited = tk.BooleanVar(value=False)
     font = ("Times New Roman", 20)
     HIntLabel = ttk.Label(mainWindow, text = "", font = font)
@@ -66,28 +67,12 @@ def runSimulator():
         updateLabelsList(memoryDebugLabels)
         updateOUTWindow()
 
-    def reset():
-        computer.reset()
-        computer.loadProgram("ijvmcodeoutput.txt")
-
-    def nextCycle():
-        root = tk._get_default_root('Running')
-        runningConstantly = tk.BooleanVar(root)
-        while(runningConstantly):
+    def toggleRunningConstantly():
+        currentState = runningConstantly.get()
+        runningConstantly.set(not currentState)
+        while(runningConstantly.get()):
             tksleep(1)
             update()
-        for i in range(52):
-            computer.update()
-            updateLabelsList(registerLabels)
-            updateLabelsList(debugLabels)
-            updateLabelsList(memoryDebugLabels)
-        return
-
-    def toggleRunningConstantly():
-        root = tk._get_default_root('Running')
-        runningConstantly = tk.BooleanVar(root)
-        runningConstantly.set(not runningConstantly.get())
-        nextCycle()
 
     def closeMainWindow( event ):
         mainWindow.destroy()
@@ -99,7 +84,7 @@ def runSimulator():
 
     mainWindow.title( "main" )
     mainWindow.geometry("400x30+800+560")
-    ttk.Button(mainWindow, text="Quit", command=lambda: closer(None)).grid(column=1, row=0)
+    ttk.Button(mainWindow, text="Fechar", command=lambda: closer(None)).grid(column=1, row=0)
 
     codeWindow = tk.Toplevel( mainWindow )
     codeWindow.transient( mainWindow )
@@ -109,12 +94,14 @@ def runSimulator():
     codeWindowfrm = ttk.Frame(codeWindow, padding=10)
     codeWindowfrm.grid()
     CodeTextInput = scrolledtext.ScrolledText(codeWindowfrm, width = 25, height = 14, font = font)
+    with open("currentMacrocode.txt", "r") as Fin:
+        CodeTextInput.insert(tk.END, Fin.read())
     CodeTextInput.grid(column=2, row=0)
     
     def updateMacrocode():
         currentMacrocode = CodeTextInput.get("1.0", "end-1c")
         with open("currentMacrocode.txt", "w") as Fout:
-            print(currentMacrocode)
+            #print(currentMacrocode)
             Fout.write(currentMacrocode)
         try:
             assembleIJVM("currentMacrocode.txt")
@@ -132,9 +119,8 @@ def runSimulator():
     simulationWindow.geometry("400x30+800+500")
     simulationWindowfrm = ttk.Frame(simulationWindow, padding=10)
     simulationWindowfrm.grid()
-    ttk.Button(simulationWindow, text="Update", command=update).grid(column=1,row=0)
-    ttk.Button(simulationWindow, text="next cycle", command=toggleRunningConstantly).grid(column=2,row=0)
-    ttk.Button(simulationWindow, text="reset", command=reset).grid(column=3,row=0)
+    ttk.Button(simulationWindow, text="próximo timestep", command=update).grid(column=1,row=0)
+    ttk.Button(simulationWindow, text="play/pause", command=toggleRunningConstantly).grid(column=2,row=0)
 
     registersWindow = tk.Toplevel( mainWindow )
     registersWindow.transient( mainWindow )

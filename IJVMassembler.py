@@ -159,7 +159,7 @@ def assembleIJVM(fileName):
             methodName = instructionParts[i]
             bitsWritten += writeIntByte(outF, constantAddress[methodName], 2)
             return bitsWritten
-        print(opcode)
+        #print(opcode)
         return 0
 
     def byteCountInLine(line : str):
@@ -228,7 +228,7 @@ def assembleIJVM(fileName):
         if(opcode == "INVOKEVIRTUAL"):#requires method name, write 2byte mehtod address
             bitsWritten += 2
             return bitsWritten
-        print(opcode)
+        #print(opcode)
 
         
 
@@ -323,8 +323,8 @@ def assembleIJVM(fileName):
                     currentMethodByte += byteCountInLine(line.split(':')[len(line.split(':'))-1].strip())
             f.seek(0,0)
             
-            print(constantAddress)
-            print(constantValue)
+            #print(constantAddress)
+            #print(constantValue)
 
             #find labels in main and their addresses
             #percebi q esse e o próximo é igual os últimos 2 e talvez de pra tirar os ultimos 2
@@ -543,7 +543,7 @@ def assembleIJVM(fileName):
             
             LV = CPP + len(constantAddress.keys())
 
-    print(lines)
+    #print(lines)
     if(True):
         with open("ijvmcodeoutput.txt", "w") as outF:
             writeIntByte(outF, CPP, 4)

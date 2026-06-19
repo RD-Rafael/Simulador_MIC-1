@@ -4,7 +4,7 @@ i
 .end-var
 BIPUSH 0x00
 ISTORE i
-loop:ILOAD i
+loop: ILOAD i
 OUT
 POP
 IINC i 0x01
