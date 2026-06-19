@@ -1,3 +1,0 @@
-Main1: H = H + 1;wr
-
-rd;goto Main1

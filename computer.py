@@ -356,8 +356,10 @@ class Computer:
             word : BitData = BitData(32)
             wordAddress = currentSPBits.toInteger()*4
             word.copyBitSection(s.Memory.memoryBits, wordAddress*8)
-            print(word.toInteger())
             s.controlMemory.gotOutOp = False
+            return word.toInteger()
+        else:
+            return None
 
     def loadProgram(s, fileName):
         s.Memory.loadProgram(fileName)
