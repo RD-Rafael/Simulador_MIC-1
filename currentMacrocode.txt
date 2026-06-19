@@ -1,0 +1,12 @@
+.main
+.var
+i
+.end-var
+BIPUSH 0x00
+ISTORE i
+loop:ILOAD i
+OUT
+POP
+IINC i 0x01
+GOTO loop
+.end-main
